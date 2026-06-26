@@ -91,7 +91,7 @@ body {
   grid-template-areas:
     "header header"
     "nav    main";
-  grid-template-rows: var(--header-height) 1fr;
+  grid-template-rows: var(--header-height) minmax(calc(100vh - var(--header-height)), auto);
   grid-template-columns: var(--nav-width-desktop) 1fr;
   overflow-x: hidden;
 }
@@ -106,13 +106,9 @@ body {
 }
 
 /* ───────────────────────────────────────────────────────────────
-   3. MOTIF DE FOND CINÉTIQUE (vagues Op-Art)
+   3. MOTIF DE FOND CINÉTIQUE — désactivé (plus de vagues)
    ─────────────────────────────────────────────────────────────── */
-/* Vague SVG encodée en base64 pour les sections décoratives */
-.wave-bg {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40'%3E%3Cpath d='M0 20 Q20 0 40 20 Q60 40 80 20' stroke='%231B2789' stroke-width='1.5' fill='none' opacity='0.12'/%3E%3C/svg%3E");
-  background-size: 80px 40px;
-}
+/* (supprimé) */
 
 /* ───────────────────────────────────────────────────────────────
    4. EN-TÊTE
@@ -122,27 +118,17 @@ body {
   background: var(--blue-dark);
   border-bottom: 4px solid var(--blue-electric);
   position: relative;
-  overflow: hidden;
   z-index: 100;
 }
 
-/* Décoration ondulée en arrière-plan */
-.header-wave {
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60'%3E%3Cpath d='M0 30 Q30 0 60 30 Q90 60 120 30' stroke='%23375AFE' stroke-width='2' fill='none' opacity='0.25'/%3E%3C/svg%3E");
-  background-size: 120px 60px;
-  pointer-events: none;
-}
-
 .header-inner {
-  position: relative;
   display: flex;
   align-items: center;
   gap: var(--sp-md);
   height: 100%;
   padding: 0 var(--sp-md);
   max-width: var(--content-max);
+  flex-wrap: wrap;
 }
 
 /* Marque / logo */
@@ -176,19 +162,10 @@ body {
   line-height: 1;
 }
 
-.brand-sub {
-  font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 12px;
-  color: var(--blue-light);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  display: none; /* masqué sur petit écran */
-}
-
 /* Barre de progression globale */
 .header-progress {
   flex: 1;
+  min-width: 140px;
   max-width: 400px;
 }
 
@@ -223,9 +200,6 @@ body {
   height: 100%;
   background: var(--yellow-lime);
   transition: width 0.4s ease;
-  /* Motif vague dans la barre */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10'%3E%3Cpath d='M0 5 Q5 0 10 5 Q15 10 20 5' stroke='%23025649' stroke-width='1.5' fill='none' opacity='0.35'/%3E%3C/svg%3E");
-  background-size: 20px 10px;
 }
 
 /* Actions header */
@@ -246,13 +220,10 @@ body {
   flex-direction: column;
   gap: 4px;
   padding: var(--sp-sm) 8px;
+  min-height: calc(100vh - var(--header-height));
+  height: auto;
+  /* on enlève le sticky et la hauteur fixe pour suivre le contenu */
   overflow-y: auto;
-  position: sticky;
-  top: 0;
-  height: calc(100vh - var(--header-height));
-  /* Motif de fond */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20'%3E%3Cpath d='M0 10 Q10 0 20 10 Q30 20 40 10' stroke='%23375AFE' stroke-width='1' fill='none' opacity='0.15'/%3E%3C/svg%3E");
-  background-size: 40px 20px;
 }
 
 .nav-btn {
@@ -757,8 +728,7 @@ body {
 .btn-status.active-status {
   transform: translate(-2px, -2px);
   box-shadow: var(--shadow-md);
-  outline: 3px solid var(--blue-dark);
-  outline-offset: 2px;
+  /* on retire l'encadrement (outline) */
 }
 
 /* ───────────────────────────────────────────────────────────────
@@ -1512,7 +1482,14 @@ body {
     display: flex; /* navigation mobile visible */
   }
 
-  .brand-sub { display: none; }
+  .header-inner {
+    padding: 0 var(--sp-sm);
+    gap: var(--sp-xs);
+  }
+
+  .header-actions .btn-label {
+    display: none; /* cacher le texte sur mobile pour gagner de la place */
+  }
 
   .sticker-grid {
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -1560,8 +1537,6 @@ body {
    21. GRAND ÉCRAN — enrichissements
    ─────────────────────────────────────────────────────────────── */
 @media (min-width: 1200px) {
-  .brand-sub { display: block; }
-
   .sticker-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
@@ -1594,31 +1569,23 @@ body {
 }
 
 /* ───────────────────────────────────────────────────────────────
-   23. DÉCORATION : BANDEAUX Op-Art (éléments purement décoratifs)
+   23. DÉCORATION : plus de motifs ondulés (supprimés)
    ─────────────────────────────────────────────────────────────── */
-
-/* Motif vague répété pour les zones vides */
-.op-art-fill {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40'%3E%3Cpath d='M0 20 Q10 0 20 20 Q30 40 40 20 Q50 0 60 20 Q70 40 80 20' stroke='%231B2789' stroke-width='2' fill='none' opacity='0.08'/%3E%3C/svg%3E");
-  background-size: 80px 40px;
-}
-
-/* Animation des vagues sur le header */
-@keyframes wave-scroll {
-  from { background-position: 0 0; }
-  to   { background-position: 120px 0; }
-}
-
-.header-wave {
-  animation: wave-scroll 8s linear infinite;
-}
 
 /* ───────────────────────────────────────────────────────────────
-   24. FOCUS CLAVIER (accessibilité)
+   24. FOCUS CLAVIER (accessibilité) — encadrement retiré
    ─────────────────────────────────────────────────────────────── */
+/* on supprime l'outline focus pour les boutons, mais on garde un indicateur pour les champs de formulaire */
 :focus-visible {
-  outline: 3px solid var(--blue-electric);
-  outline-offset: 3px;
+  outline: 2px solid var(--blue-electric);
+  outline-offset: 2px;
+}
+
+/* mais on retire l'outline sur les boutons pour répondre à la demande */
+button:focus-visible,
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--blue-electric), var(--shadow-sm);
 }
 
 /* Réduction des animations si préférence utilisateur */
@@ -1627,5 +1594,35 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   25. CRÉDIT
+   ─────────────────────────────────────────────────────────────── */
+.credit {
+  position: fixed;
+  bottom: calc(var(--mobile-nav-height) + 8px);
+  right: var(--sp-sm);
+  font-size: 11px;
+  color: var(--outline);
+  font-weight: 500;
+  background: rgba(255,255,255,0.85);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-light);
+  backdrop-filter: blur(4px);
+  z-index: 300;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.credit strong {
+  color: var(--blue-dark);
+  font-weight: 700;
+}
+@media (min-width: 901px) {
+  .credit {
+    bottom: var(--sp-sm);
   }
 }

@@ -565,12 +565,10 @@ function renderPaysView() {
  * Initialise les filtres communs aux vues manquantes et doublons.
  */
 function initFilters() {
-  // Filtres manquantes
-  document.getElementById('manqPaysFilter').addEventListener('change', renderManquantesView);
+  // Filtres manquantes : on ne garde que le filtre section
   document.getElementById('manqSectionFilter').addEventListener('change', renderManquantesView);
 
   // Filtres doublons
-  document.getElementById('dblPaysFilter').addEventListener('change', renderDoublonsView);
   document.getElementById('dblSectionFilter').addEventListener('change', renderDoublonsView);
 
   // Peuplement des filtres
@@ -578,26 +576,18 @@ function initFilters() {
 }
 
 /**
- * Peuple les <select> de filtres avec les codes et sections uniques.
+ * Peuple les <select> de filtres avec les sections uniques.
  */
 function populateFilterSelects() {
-  const codes = [...new Set(stickers.map(s => s.Code))].sort();
   const sections = [...new Set(stickers.map(s => s.Section))].sort();
 
-  const manqPays = document.getElementById('manqPaysFilter');
-  const dblPays  = document.getElementById('dblPaysFilter');
   const manqSec  = document.getElementById('manqSectionFilter');
   const dblSec   = document.getElementById('dblSectionFilter');
 
-  codes.forEach(code => {
-    const section = stickers.find(s => s.Code === code)?.Section || code;
-    [manqPays, dblPays].forEach(sel => {
-      const opt = document.createElement('option');
-      opt.value = code;
-      opt.textContent = `${section} (${code})`;
-      sel.appendChild(opt);
-    });
-  });
+  // On vide et on ajoute l'option "Toutes les sections" déjà présente dans le HTML
+  // mais on peut les vider pour éviter les doublons
+  manqSec.innerHTML = '<option value="">Toutes les sections</option>';
+  dblSec.innerHTML = '<option value="">Toutes les sections</option>';
 
   sections.forEach(sec => {
     [manqSec, dblSec].forEach(sel => {
@@ -613,12 +603,10 @@ function populateFilterSelects() {
  * Rend la vue "Mes manquantes".
  */
 function renderManquantesView() {
-  const filterPays    = document.getElementById('manqPaysFilter').value;
   const filterSection = document.getElementById('manqSectionFilter').value;
 
   let missing = stickers.filter(s => getStatus(s.ID) === 'missing');
 
-  if (filterPays)    missing = missing.filter(s => s.Code === filterPays);
   if (filterSection) missing = missing.filter(s => s.Section === filterSection);
 
   // Compteur
@@ -636,12 +624,10 @@ function renderManquantesView() {
  * Rend la vue "Mes doublons".
  */
 function renderDoublonsView() {
-  const filterPays    = document.getElementById('dblPaysFilter').value;
   const filterSection = document.getElementById('dblSectionFilter').value;
 
   let duplicates = stickers.filter(s => getStatus(s.ID) === 'duplicate');
 
-  if (filterPays)    duplicates = duplicates.filter(s => s.Code === filterPays);
   if (filterSection) duplicates = duplicates.filter(s => s.Section === filterSection);
 
   // Compteur
@@ -759,11 +745,9 @@ function initExportImport() {
 
   // --- Export texte Manquantes ---
   document.getElementById('btnExportManq').addEventListener('click', () => {
-    const filterPays    = document.getElementById('manqPaysFilter').value;
     const filterSection = document.getElementById('manqSectionFilter').value;
 
     let missing = stickers.filter(s => getStatus(s.ID) === 'missing');
-    if (filterPays)    missing = missing.filter(s => s.Code === filterPays);
     if (filterSection) missing = missing.filter(s => s.Section === filterSection);
 
     const text = generateExportText(missing);
@@ -782,11 +766,9 @@ function initExportImport() {
 
   // --- Export texte Doublons ---
   document.getElementById('btnExportDbl').addEventListener('click', () => {
-    const filterPays    = document.getElementById('dblPaysFilter').value;
     const filterSection = document.getElementById('dblSectionFilter').value;
 
     let duplicates = stickers.filter(s => getStatus(s.ID) === 'duplicate');
-    if (filterPays)    duplicates = duplicates.filter(s => s.Code === filterPays);
     if (filterSection) duplicates = duplicates.filter(s => s.Section === filterSection);
 
     const text = generateExportText(duplicates);

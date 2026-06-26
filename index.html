@@ -20,15 +20,11 @@
        EN-TÊTE GLOBAL
   ═══════════════════════════════════════════════════ -->
   <header class="app-header">
-    <!-- Décoration cinétique ondulée -->
-    <div class="header-wave" aria-hidden="true"></div>
-
     <div class="header-inner">
       <!-- Logo / Titre -->
       <div class="header-brand">
         <span class="brand-badge">PANINI</span>
         <h1 class="brand-title">WC 2026</h1>
-        <span class="brand-sub">Ma Collection</span>
       </div>
 
       <!-- Barre de progression globale -->
@@ -157,9 +153,6 @@
       <div class="view-header">
         <h2 class="view-title">Mes manquantes</h2>
         <div class="list-controls">
-          <select id="manqPaysFilter" class="filter-select" aria-label="Filtrer par pays">
-            <option value="">Tous les pays</option>
-          </select>
           <select id="manqSectionFilter" class="filter-select" aria-label="Filtrer par section">
             <option value="">Toutes les sections</option>
           </select>
@@ -193,9 +186,6 @@
       <div class="view-header">
         <h2 class="view-title">Mes doublons</h2>
         <div class="list-controls">
-          <select id="dblPaysFilter" class="filter-select" aria-label="Filtrer par pays">
-            <option value="">Tous les pays</option>
-          </select>
           <select id="dblSectionFilter" class="filter-select" aria-label="Filtrer par section">
             <option value="">Toutes les sections</option>
           </select>
@@ -341,6 +331,13 @@
         </button>
       </div>
     </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       CRÉDIT
+  ═══════════════════════════════════════════════════ -->
+  <div class="credit">
+    <span>Conçu par <strong>Lucas Bessonnat</strong> — 2026</span>
   </div>
 
   <script src="app.js"></script>

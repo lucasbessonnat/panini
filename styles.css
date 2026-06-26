@@ -91,7 +91,7 @@ body {
   grid-template-areas:
     "header header"
     "nav    main";
-  grid-template-rows: var(--header-height) minmax(calc(100vh - var(--header-height)), auto);
+  grid-template-rows: var(--header-height) 1fr;
   grid-template-columns: var(--nav-width-desktop) 1fr;
   overflow-x: hidden;
 }
@@ -106,9 +106,12 @@ body {
 }
 
 /* ───────────────────────────────────────────────────────────────
-   3. MOTIF DE FOND CINÉTIQUE — désactivé (plus de vagues)
+   3. MOTIF DE FOND GÉOMÉTRIQUE (Trame Op-Art de points)
    ─────────────────────────────────────────────────────────────── */
-/* (supprimé) */
+.wave-bg {
+  background-image: radial-gradient(rgba(27, 39, 137, 0.1) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
 
 /* ───────────────────────────────────────────────────────────────
    4. EN-TÊTE
@@ -118,17 +121,27 @@ body {
   background: var(--blue-dark);
   border-bottom: 4px solid var(--blue-electric);
   position: relative;
+  overflow: hidden;
   z-index: 100;
 }
 
+/* Décoration géométrique en arrière-plan */
+.header-wave {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(55, 90, 254, 0.3) 2px, transparent 2px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
 .header-inner {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--sp-md);
   height: 100%;
   padding: 0 var(--sp-md);
   max-width: var(--content-max);
-  flex-wrap: wrap;
 }
 
 /* Marque / logo */
@@ -162,10 +175,19 @@ body {
   line-height: 1;
 }
 
+.brand-sub {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--blue-light);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: none !important; /* Masqué définitivement pour enlever "Ma collection" */
+}
+
 /* Barre de progression globale */
 .header-progress {
   flex: 1;
-  min-width: 140px;
   max-width: 400px;
 }
 
@@ -200,6 +222,9 @@ body {
   height: 100%;
   background: var(--yellow-lime);
   transition: width 0.4s ease;
+  /* Rayures géométriques à 45° rétro-futuristes */
+  background-image: linear-gradient(45deg, rgba(2, 86, 73, 0.15) 25%, transparent 25%, transparent 50%, rgba(2, 86, 73, 0.15) 50%, rgba(2, 86, 73, 0.15) 75%, transparent 75%, transparent);
+  background-size: 16px 16px;
 }
 
 /* Actions header */
@@ -220,10 +245,30 @@ body {
   flex-direction: column;
   gap: 4px;
   padding: var(--sp-sm) 8px;
-  min-height: calc(100vh - var(--header-height));
-  height: auto;
-  /* on enlève le sticky et la hauteur fixe pour suivre le contenu */
   overflow-y: auto;
+  position: sticky;
+  top: 0;
+  min-height: calc(100vh - var(--header-height));
+  height: 100%; /* S'adapte désormais à toute la hauteur du contenu du main */
+  /* Motif géométrique de points */
+  background-image: radial-gradient(rgba(55, 90, 254, 0.15) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+
+/* Crédit subtil ajouté en bas de la sidebar */
+.main-nav::after {
+  content: "Lucas Bessonnat";
+  display: block;
+  margin-top: auto;
+  padding-top: var(--sp-md);
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--blue-light);
+  opacity: 0.5;
+  text-align: center;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .nav-btn {
@@ -728,7 +773,13 @@ body {
 .btn-status.active-status {
   transform: translate(-2px, -2px);
   box-shadow: var(--shadow-md);
-  /* on retire l'encadrement (outline) */
+  outline: none; /* Enlevé l'encadrement comme demandé */
+}
+
+/* Reset global pour empêcher les liserés au clic ou focus sur les boutons */
+.btn:active, .nav-btn:active, .mobile-nav-btn:active,
+.btn:focus, .nav-btn:focus, .mobile-nav-btn:focus {
+  outline: none !important;
 }
 
 /* ───────────────────────────────────────────────────────────────
@@ -1469,7 +1520,7 @@ body {
     grid-template-areas:
       "header"
       "main";
-    grid-template-rows: var(--header-height) 1fr;
+    grid-template-rows: auto 1fr; /* Passage en hauteur auto pour gérer le contenu dynamique du header */
     grid-template-columns: 1fr;
     padding-bottom: var(--mobile-nav-height);
   }
@@ -1482,13 +1533,22 @@ body {
     display: flex; /* navigation mobile visible */
   }
 
+  .brand-sub { display: none !important; }
+
+  /* Composition du Header revue pour être parfaitement fluide et responsive */
   .header-inner {
-    padding: 0 var(--sp-sm);
-    gap: var(--sp-xs);
+    flex-wrap: wrap;
+    justify-content: space-between;
+    height: auto;
+    padding: var(--sp-xs) var(--sp-sm);
+    gap: var(--sp-xs) var(--sp-md);
   }
 
-  .header-actions .btn-label {
-    display: none; /* cacher le texte sur mobile pour gagner de la place */
+  .header-progress {
+    flex: 1 1 100%; /* La barre passe proprement en dessous sur mobile */
+    max-width: 100%;
+    order: 3;
+    margin-top: 4px;
   }
 
   .sticker-grid {
@@ -1537,6 +1597,8 @@ body {
    21. GRAND ÉCRAN — enrichissements
    ─────────────────────────────────────────────────────────────── */
 @media (min-width: 1200px) {
+  .brand-sub { display: none !important; } /* Conservé masqué pour supprimer l'élément */
+
   .sticker-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
@@ -1569,23 +1631,31 @@ body {
 }
 
 /* ───────────────────────────────────────────────────────────────
-   23. DÉCORATION : plus de motifs ondulés (supprimés)
+   23. DÉCORATION : MOTIFS GÉOMÉTRIQUES (Remplacement complet des vagues)
    ─────────────────────────────────────────────────────────────── */
 
-/* ───────────────────────────────────────────────────────────────
-   24. FOCUS CLAVIER (accessibilité) — encadrement retiré
-   ─────────────────────────────────────────────────────────────── */
-/* on supprime l'outline focus pour les boutons, mais on garde un indicateur pour les champs de formulaire */
-:focus-visible {
-  outline: 2px solid var(--blue-electric);
-  outline-offset: 2px;
+/* Trame fine de points pour les zones vides */
+.op-art-fill {
+  background-image: radial-gradient(rgba(27, 39, 137, 0.06) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
 }
 
-/* mais on retire l'outline sur les boutons pour répondre à la demande */
-button:focus-visible,
-.btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--blue-electric), var(--shadow-sm);
+/* Défilement cinétique horizontal de la trame du header */
+@keyframes pattern-scroll {
+  from { background-position: 0 0; }
+  to   { background-position: 24px 0; }
+}
+
+.header-wave {
+  animation: pattern-scroll 6s linear infinite;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   24. FOCUS CLAVIER (accessibilité)
+   ─────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 3px solid var(--blue-electric);
+  outline-offset: 3px;
 }
 
 /* Réduction des animations si préférence utilisateur */
@@ -1594,35 +1664,5 @@ button:focus-visible,
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-/* ───────────────────────────────────────────────────────────────
-   25. CRÉDIT
-   ─────────────────────────────────────────────────────────────── */
-.credit {
-  position: fixed;
-  bottom: calc(var(--mobile-nav-height) + 8px);
-  right: var(--sp-sm);
-  font-size: 11px;
-  color: var(--outline);
-  font-weight: 500;
-  background: rgba(255,255,255,0.85);
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-light);
-  backdrop-filter: blur(4px);
-  z-index: 300;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-  pointer-events: none;
-}
-.credit strong {
-  color: var(--blue-dark);
-  font-weight: 700;
-}
-@media (min-width: 901px) {
-  .credit {
-    bottom: var(--sp-sm);
   }
 }

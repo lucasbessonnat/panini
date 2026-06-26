@@ -139,20 +139,28 @@ body {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--sp-sm);
+  gap: var(--sp-xs);
   height: 100%;
   padding: 0 var(--sp-sm);
   max-width: var(--content-max);
-  flex-wrap: nowrap;
   min-width: 0;
+  overflow: hidden;
 }
 
 /* Marque / logo */
 .header-brand {
   display: flex;
   align-items: center;
-  gap: var(--sp-xs);
+  gap: 10px;
   flex-shrink: 0;
+}
+
+/* Wrapper texte titre + crédit */
+.header-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1;
 }
 
 .brand-badge {
@@ -191,8 +199,9 @@ body {
 /* Barre de progression globale */
 .header-progress {
   flex: 1;
-  min-width: 0;
+  min-width: 80px;
   max-width: 400px;
+  overflow: hidden;
 }
 
 .progress-label {
@@ -228,23 +237,23 @@ body {
   transition: width 0.4s ease;
 }
 
-/* Crédit auteur */
+/* Crédit auteur — sous le titre */
 .header-credit {
   font-family: var(--font-body);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 500;
-  color: rgba(141, 186, 254, 0.45);
-  letter-spacing: 0.06em;
+  color: rgba(141, 186, 254, 0.4);
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   white-space: nowrap;
-  flex-shrink: 0;
   user-select: none;
+  line-height: 1;
 }
 
 /* Actions header */
 .header-actions {
   display: flex;
-  gap: var(--sp-xs);
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -1516,6 +1525,28 @@ body {
     padding-bottom: var(--mobile-nav-height);
   }
 
+  /* Header mobile : progress bar se compresse, labels boutons masqués */
+  .header-progress {
+    min-width: 60px;
+  }
+
+  .progress-label {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .progress-pct {
+    font-size: 13px;
+  }
+
+  .btn-label {
+    display: none;
+  }
+
+  .header-actions .btn {
+    padding: 7px 8px;
+  }
+
   .main-nav {
     display: none; /* navigation desktop cachée */
   }
@@ -1648,5 +1679,18 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   25. TRÈS PETIT ÉCRAN (< 420px) — ajustements header
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 420px) {
+  .header-progress {
+    display: none;
+  }
+
+  .header-inner {
+    gap: 8px;
   }
 }

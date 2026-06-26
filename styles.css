@@ -94,6 +94,7 @@ body {
   grid-template-rows: var(--header-height) 1fr;
   grid-template-columns: var(--nav-width-desktop) 1fr;
   overflow-x: hidden;
+  align-items: start;
 }
 
 /* Classe utilitaire : élément caché */
@@ -106,11 +107,12 @@ body {
 }
 
 /* ───────────────────────────────────────────────────────────────
-   3. MOTIF DE FOND GÉOMÉTRIQUE (Trame Op-Art de points)
+   3. MOTIF DE FOND CINÉTIQUE (vagues Op-Art)
    ─────────────────────────────────────────────────────────────── */
+/* Vague SVG encodée en base64 pour les sections décoratives */
 .wave-bg {
-  background-image: radial-gradient(rgba(27, 39, 137, 0.1) 1.5px, transparent 1.5px);
-  background-size: 20px 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40'%3E%3Cpath d='M0 20 Q20 0 40 20 Q60 40 80 20' stroke='%231B2789' stroke-width='1.5' fill='none' opacity='0.12'/%3E%3C/svg%3E");
+  background-size: 80px 40px;
 }
 
 /* ───────────────────────────────────────────────────────────────
@@ -125,23 +127,18 @@ body {
   z-index: 100;
 }
 
-/* Décoration géométrique en arrière-plan */
-.header-wave {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(rgba(55, 90, 254, 0.3) 2px, transparent 2px);
-  background-size: 24px 24px;
-  pointer-events: none;
-}
+/* Décoration supprimée — rem. header-wave gardé pour compatibilité JS éventuel */
+.header-wave { display: none; }
 
 .header-inner {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--sp-md);
+  gap: var(--sp-sm);
   height: 100%;
-  padding: 0 var(--sp-md);
+  padding: 0 var(--sp-sm);
   max-width: var(--content-max);
+  flex-wrap: wrap;
 }
 
 /* Marque / logo */
@@ -173,22 +170,6 @@ body {
   letter-spacing: -0.02em;
   text-transform: uppercase;
   line-height: 1;
-  /* Ajout du flexbox pour empiler le titre et le crédit proprement */
-  display: flex;
-  flex-direction: column;
-}
-
-/* Nouveau crédit placé sous WC 2026 */
-.brand-title::after {
-  content: "Par Lucas Bessonnat";
-  font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 10px; /* Taille réduite pour rester discret */
-  color: var(--blue-light);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.6;
-  margin-top: 4px; /* Espacement avec le texte du dessus */
 }
 
 .brand-sub {
@@ -198,7 +179,7 @@ body {
   color: var(--blue-light);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  display: none !important; /* Masqué définitivement pour enlever "Ma collection" */
+  display: none;
 }
 
 /* Barre de progression globale */
@@ -238,9 +219,9 @@ body {
   height: 100%;
   background: var(--yellow-lime);
   transition: width 0.4s ease;
-  /* Rayures géométriques à 45° rétro-futuristes */
-  background-image: linear-gradient(45deg, rgba(2, 86, 73, 0.15) 25%, transparent 25%, transparent 50%, rgba(2, 86, 73, 0.15) 50%, rgba(2, 86, 73, 0.15) 75%, transparent 75%, transparent);
-  background-size: 16px 16px;
+  /* Motif vague dans la barre */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10'%3E%3Cpath d='M0 5 Q5 0 10 5 Q15 10 20 5' stroke='%23025649' stroke-width='1.5' fill='none' opacity='0.35'/%3E%3C/svg%3E");
+  background-size: 20px 10px;
 }
 
 /* Actions header */
@@ -264,11 +245,8 @@ body {
   overflow-y: auto;
   position: sticky;
   top: 0;
-  min-height: calc(100vh - var(--header-height));
-  height: 100%; /* S'adapte désormais à toute la hauteur du contenu du main */
-  /* Motif géométrique de points */
-  background-image: radial-gradient(rgba(55, 90, 254, 0.15) 1.5px, transparent 1.5px);
-  background-size: 20px 20px;
+  height: 100vh;
+  max-height: 100vh;
 }
 
 .nav-btn {
@@ -773,13 +751,6 @@ body {
 .btn-status.active-status {
   transform: translate(-2px, -2px);
   box-shadow: var(--shadow-md);
-  outline: none; /* Enlevé l'encadrement comme demandé */
-}
-
-/* Reset global pour empêcher les liserés au clic ou focus sur les boutons */
-.btn:active, .nav-btn:active, .mobile-nav-btn:active,
-.btn:focus, .nav-btn:focus, .mobile-nav-btn:focus {
-  outline: none !important;
 }
 
 /* ───────────────────────────────────────────────────────────────
@@ -1520,7 +1491,7 @@ body {
     grid-template-areas:
       "header"
       "main";
-    grid-template-rows: auto 1fr; /* Passage en hauteur auto pour gérer le contenu dynamique du header */
+    grid-template-rows: auto 1fr;
     grid-template-columns: 1fr;
     padding-bottom: var(--mobile-nav-height);
   }
@@ -1533,22 +1504,36 @@ body {
     display: flex; /* navigation mobile visible */
   }
 
-  .brand-sub { display: none !important; }
+  .brand-sub { display: none; }
 
-  /* Composition du Header revue pour être parfaitement fluide et responsive */
+  .app-header {
+    height: auto;
+  }
+
   .header-inner {
     flex-wrap: wrap;
-    justify-content: space-between;
     height: auto;
     padding: var(--sp-xs) var(--sp-sm);
-    gap: var(--sp-xs) var(--sp-md);
+    gap: var(--sp-xs);
+    align-items: center;
+  }
+
+  .header-brand {
+    flex-shrink: 0;
   }
 
   .header-progress {
-    flex: 1 1 100%; /* La barre passe proprement en dessous sur mobile */
-    max-width: 100%;
     order: 3;
-    margin-top: 4px;
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .header-actions {
+    margin-left: auto;
+  }
+
+  .btn-label {
+    display: none;
   }
 
   .sticker-grid {
@@ -1597,8 +1582,6 @@ body {
    21. GRAND ÉCRAN — enrichissements
    ─────────────────────────────────────────────────────────────── */
 @media (min-width: 1200px) {
-  .brand-sub { display: none !important; } /* Conservé masqué pour supprimer l'élément */
-
   .sticker-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
@@ -1631,23 +1614,23 @@ body {
 }
 
 /* ───────────────────────────────────────────────────────────────
-   23. DÉCORATION : MOTIFS GÉOMÉTRIQUES (Remplacement complet des vagues)
+   23. DÉCORATION : BANDEAUX Op-Art (éléments purement décoratifs)
    ─────────────────────────────────────────────────────────────── */
 
-/* Trame fine de points pour les zones vides */
+/* Motif vague répété pour les zones vides */
 .op-art-fill {
-  background-image: radial-gradient(rgba(27, 39, 137, 0.06) 1.5px, transparent 1.5px);
-  background-size: 20px 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40'%3E%3Cpath d='M0 20 Q10 0 20 20 Q30 40 40 20 Q50 0 60 20 Q70 40 80 20' stroke='%231B2789' stroke-width='2' fill='none' opacity='0.08'/%3E%3C/svg%3E");
+  background-size: 80px 40px;
 }
 
-/* Défilement cinétique horizontal de la trame du header */
-@keyframes pattern-scroll {
+/* Animation des vagues sur le header */
+@keyframes wave-scroll {
   from { background-position: 0 0; }
-  to   { background-position: 24px 0; }
+  to   { background-position: 120px 0; }
 }
 
 .header-wave {
-  animation: pattern-scroll 6s linear infinite;
+  animation: wave-scroll 8s linear infinite;
 }
 
 /* ───────────────────────────────────────────────────────────────
@@ -1664,5 +1647,29 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   25. CRÉDIT AUTEUR
+   ─────────────────────────────────────────────────────────────── */
+.app-credit {
+  grid-area: main;
+  position: fixed;
+  bottom: 6px;
+  right: 10px;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--outline);
+  opacity: 0.45;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  z-index: 50;
+}
+
+@media (max-width: 900px) {
+  .app-credit {
+    bottom: calc(var(--mobile-nav-height) + 6px);
   }
 }

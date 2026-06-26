@@ -540,14 +540,14 @@ function renderPaysView() {
   document.getElementById('paysSummary').innerHTML = `
     <img class="pays-flag" src="${escHtml(flagURL)}" alt="${escHtml(sectionName)}" 
          onerror="this.style.display='none'" />
-    <div>
+    <div class="pays-info">
       <div class="pays-info-name">${escHtml(sectionName)}</div>
       <div class="pays-info-stats">
         <strong>${owned}</strong> / ${total} possédées — <strong>${pct}%</strong>
       </div>
     </div>
-    <div class="pays-progress-bar" style="flex:1;height:12px;background:var(--blue-electric);border:2px solid rgba(255,255,255,0.2);border-radius:var(--radius-sm);overflow:hidden;">
-      <div class="pays-progress-fill" style="width:${pct}%;height:100%;background:var(--green-bright);transition:width 0.3s;"></div>
+    <div class="pays-progress-bar">
+      <div class="pays-progress-fill" style="width:${pct}%"></div>
     </div>
   `;
 

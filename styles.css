@@ -139,9 +139,9 @@ body {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--sp-xs);
+  gap: var(--sp-md);
   height: 100%;
-  padding: 0 var(--sp-sm);
+  padding: 0 var(--sp-md);
   max-width: var(--content-max);
   min-width: 0;
   overflow: hidden;
@@ -151,7 +151,7 @@ body {
 .header-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   flex-shrink: 0;
 }
 
@@ -253,7 +253,7 @@ body {
 /* Actions header */
 .header-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--sp-xs);
   flex-shrink: 0;
 }
 
@@ -830,11 +830,34 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+.pays-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  margin-bottom: var(--sp-md);
+  padding: var(--sp-sm);
+  background: var(--blue-dark);
+  border: 3px solid var(--blue-electric);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+
 .pays-flag {
   height: 48px;
   width: auto;
   border: 2px solid rgba(255,255,255,0.4);
   border-radius: var(--radius-sm);
+  order: 1;
+  flex-shrink: 0;
+}
+
+.pays-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  order: 2;
+  flex-shrink: 0;
 }
 
 .pays-info-name {
@@ -859,11 +882,13 @@ body {
 
 .pays-progress-bar {
   flex: 1;
+  min-width: 80px;
   height: 12px;
   background: var(--blue-electric);
   border: 2px solid rgba(255,255,255,0.2);
   border-radius: var(--radius-sm);
   overflow: hidden;
+  order: 3;
 }
 
 .pays-progress-fill {
@@ -1684,11 +1709,49 @@ body {
 /* ───────────────────────────────────────────────────────────────
    25. TRÈS PETIT ÉCRAN (< 420px) — ajustements header
    ─────────────────────────────────────────────────────────────── */
-@media (max-width: 420px) {
+@media (max-width: 700px) {
+  /* Progress bar du header masquée */
   .header-progress {
     display: none;
   }
 
+  /* Header moins serré sans la progress bar */
+  .header-inner {
+    gap: var(--sp-sm);
+    padding: 0 var(--sp-sm);
+  }
+
+  /* Pays summary : progress bar entre nom et stats */
+  .pays-summary {
+    gap: 10px;
+  }
+
+  .pays-flag {
+    order: 1;
+  }
+
+  .pays-info {
+    order: 2;
+    flex: 1 1 100%;
+  }
+
+  .pays-info-name {
+    font-size: 18px;
+  }
+
+  .pays-progress-bar {
+    order: 3;
+    flex: 1 1 100%;
+    min-width: unset;
+    height: 10px;
+  }
+
+  .pays-info-stats {
+    order: 4;
+  }
+}
+
+@media (max-width: 420px) {
   .header-inner {
     gap: 8px;
   }

@@ -1,58 +1,348 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Panini WC2026 · Sticker Tracker</title>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Anybody:wght@700;800;900&family=Hanken+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panini WC2026 — Ma Collection</title>
+
+  <!-- Polices -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wdth,wght@0,75..125,100..900;1,75..125,100..900&family=Hanken+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <!-- Icônes Material -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <!-- TopAppBar -->
-    <header id="top-bar">
-        <div class="brand">
-            <span class="material-symbols-outlined">menu</span>
-            <h1>WC2026 · ALBUM</h1>
+
+  <!-- ═══════════════════════════════════════════════════
+       EN-TÊTE GLOBAL
+  ═══════════════════════════════════════════════════ -->
+  <header class="app-header">
+    <!-- Décoration cinétique ondulée -->
+    <div class="header-wave" aria-hidden="true"></div>
+
+    <div class="header-inner">
+      <!-- Logo / Titre -->
+      <div class="header-brand">
+        <span class="brand-badge">PANINI</span>
+        <h1 class="brand-title">WC 2026</h1>
+        <span class="brand-sub">Ma Collection</span>
+      </div>
+
+      <!-- Barre de progression globale -->
+      <div class="header-progress" id="headerProgress">
+        <div class="progress-label">
+          <span id="progressOwned">0</span> / <span id="progressTotal">980</span>
+          <span class="progress-pct" id="progressPct">0%</span>
         </div>
-        <div class="actions">
-            <button id="btn-import">IMPORT</button>
-            <button id="btn-export">EXPORT</button>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill" style="width:0%"></div>
         </div>
-    </header>
+      </div>
 
-    <!-- Navigation latérale (desktop) -->
-    <nav id="desktop-nav">
-        <div class="nav-brand">STICKER TRACKER 2026</div>
-        <ul>
-            <li data-view="album" class="active"><span class="material-symbols-outlined">book</span> Album</li>
-            <li data-view="country"><span class="material-symbols-outlined">flag</span> Par pays</li>
-            <li data-view="missing"><span class="material-symbols-outlined">help_outline</span> Manquantes</li>
-            <li data-view="duplicates"><span class="material-symbols-outlined">content_copy</span> Doublons</li>
-            <li data-view="stats"><span class="material-symbols-outlined">query_stats</span> Stats</li>
-            <li data-view="trade"><span class="material-symbols-outlined">handshake</span> Échanges</li>
-        </ul>
-    </nav>
+      <!-- Actions globales : import / export -->
+      <div class="header-actions">
+        <button class="btn btn-secondary" id="btnExport" title="Exporter ma collection">
+          <span class="material-symbols-outlined">download</span>
+          <span class="btn-label">Exporter</span>
+        </button>
+        <label class="btn btn-secondary" title="Importer une collection">
+          <span class="material-symbols-outlined">upload</span>
+          <span class="btn-label">Importer</span>
+          <input type="file" accept=".json" id="inputImport" class="sr-only" />
+        </label>
+      </div>
+    </div>
+  </header>
 
-    <!-- Conteneur principal -->
-    <main id="main-content">
-        <!-- Ici sera injecté le contenu de la vue active -->
-    </main>
+  <!-- ═══════════════════════════════════════════════════
+       NAVIGATION PRINCIPALE (Desktop : onglets latéraux)
+  ═══════════════════════════════════════════════════ -->
+  <nav class="main-nav" role="navigation" aria-label="Navigation principale">
+    <button class="nav-btn active" data-view="album" aria-pressed="true">
+      <span class="material-symbols-outlined" aria-hidden="true">menu_book</span>
+      <span>Album</span>
+    </button>
+    <button class="nav-btn" data-view="pays" aria-pressed="false">
+      <span class="material-symbols-outlined" aria-hidden="true">flag</span>
+      <span>Par pays</span>
+    </button>
+    <button class="nav-btn" data-view="manquantes" aria-pressed="false">
+      <span class="material-symbols-outlined" aria-hidden="true">search_off</span>
+      <span>Manquantes</span>
+    </button>
+    <button class="nav-btn" data-view="doublons" aria-pressed="false">
+      <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+      <span>Doublons</span>
+    </button>
+    <button class="nav-btn" data-view="stats" aria-pressed="false">
+      <span class="material-symbols-outlined" aria-hidden="true">leaderboard</span>
+      <span>Statistiques</span>
+    </button>
+    <button class="nav-btn" data-view="echanges" aria-pressed="false">
+      <span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
+      <span>Échanges</span>
+    </button>
+  </nav>
 
-    <!-- Barre de navigation mobile -->
-    <nav id="mobile-nav">
-        <button data-view="album"><span class="material-symbols-outlined">book</span><span>Album</span></button>
-        <button data-view="country"><span class="material-symbols-outlined">flag</span><span>Pays</span></button>
-        <button data-view="missing" class="active"><span class="material-symbols-outlined">help_outline</span><span>Manque</span></button>
-        <button data-view="duplicates"><span class="material-symbols-outlined">content_copy</span><span>Doublons</span></button>
-        <button data-view="stats"><span class="material-symbols-outlined">query_stats</span><span>Stats</span></button>
-        <button data-view="trade"><span class="material-symbols-outlined">handshake</span><span>Échanges</span></button>
-    </nav>
+  <!-- ═══════════════════════════════════════════════════
+       ZONE DE CONTENU PRINCIPAL
+  ═══════════════════════════════════════════════════ -->
+  <main class="app-main" id="appMain">
 
-    <!-- Input caché pour l'import -->
-    <input type="file" id="file-input" accept=".json" style="display:none" />
+    <!-- ─────────────────────────────────────────────
+         VUE ALBUM
+    ───────────────────────────────────────────── -->
+    <section class="view" id="view-album" aria-label="Vue Album">
 
-    <script src="app.js"></script>
+      <!-- Contrôles de la page album -->
+      <div class="album-controls">
+        <div class="album-page-info">
+          <span class="page-label">PAGE</span>
+          <strong id="albumPageCurrent">1</strong>
+          <span class="page-sep">/</span>
+          <span id="albumPageTotal">50</span>
+        </div>
+        <div class="album-nav-btns">
+          <button class="btn btn-icon" id="btnPagePrev" aria-label="Page précédente">
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+          <select id="albumPageSelect" class="page-select" aria-label="Choisir une page d'album"></select>
+          <button class="btn btn-icon" id="btnPageNext" aria-label="Page suivante">
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+        <!-- Légende statuts -->
+        <div class="album-legend">
+          <span class="legend-item legend-owned">
+            <span class="legend-dot"></span>Possédée
+          </span>
+          <span class="legend-item legend-missing">
+            <span class="legend-dot"></span>Manquante
+          </span>
+          <span class="legend-item legend-duplicate">
+            <span class="legend-dot"></span>Doublon
+          </span>
+        </div>
+      </div>
+
+      <!-- Titre de section de la page courante -->
+      <div class="album-section-header" id="albumSectionHeader"></div>
+
+      <!-- Grille de vignettes -->
+      <div class="sticker-grid" id="stickerGrid" role="list" aria-label="Vignettes de la page"></div>
+
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         VUE PAR PAYS
+    ───────────────────────────────────────────── -->
+    <section class="view hidden" id="view-pays" aria-label="Vue Par pays">
+      <div class="view-header">
+        <h2 class="view-title">Par pays</h2>
+        <div class="pays-controls">
+          <select id="paysSelect" class="filter-select" aria-label="Choisir un pays"></select>
+        </div>
+      </div>
+      <div class="pays-summary" id="paysSummary"></div>
+      <div class="sticker-grid" id="paysGrid" role="list"></div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         VUE MANQUANTES
+    ───────────────────────────────────────────── -->
+    <section class="view hidden" id="view-manquantes" aria-label="Mes vignettes manquantes">
+      <div class="view-header">
+        <h2 class="view-title">Mes manquantes</h2>
+        <div class="list-controls">
+          <select id="manqPaysFilter" class="filter-select" aria-label="Filtrer par pays">
+            <option value="">Tous les pays</option>
+          </select>
+          <select id="manqSectionFilter" class="filter-select" aria-label="Filtrer par section">
+            <option value="">Toutes les sections</option>
+          </select>
+          <button class="btn btn-primary" id="btnExportManq">
+            <span class="material-symbols-outlined">content_paste</span>
+            Exporter liste
+          </button>
+        </div>
+      </div>
+      <div class="list-count" id="manqCount"></div>
+      <div class="sticker-list" id="manqList" role="list"></div>
+      <!-- Zone export texte -->
+      <div class="export-zone hidden" id="manqExportZone">
+        <div class="export-zone-header">
+          <span>Liste à copier-coller</span>
+          <button class="btn btn-icon" id="btnCopyManq" title="Copier">
+            <span class="material-symbols-outlined">content_copy</span>
+          </button>
+          <button class="btn btn-icon" id="btnCloseManqExport" title="Fermer">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <textarea id="manqTextarea" class="export-textarea" readonly></textarea>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         VUE DOUBLONS
+    ───────────────────────────────────────────── -->
+    <section class="view hidden" id="view-doublons" aria-label="Mes doublons">
+      <div class="view-header">
+        <h2 class="view-title">Mes doublons</h2>
+        <div class="list-controls">
+          <select id="dblPaysFilter" class="filter-select" aria-label="Filtrer par pays">
+            <option value="">Tous les pays</option>
+          </select>
+          <select id="dblSectionFilter" class="filter-select" aria-label="Filtrer par section">
+            <option value="">Toutes les sections</option>
+          </select>
+          <button class="btn btn-primary" id="btnExportDbl">
+            <span class="material-symbols-outlined">content_paste</span>
+            Exporter liste
+          </button>
+        </div>
+      </div>
+      <div class="list-count" id="dblCount"></div>
+      <div class="sticker-list" id="dblList" role="list"></div>
+      <!-- Zone export texte -->
+      <div class="export-zone hidden" id="dblExportZone">
+        <div class="export-zone-header">
+          <span>Liste à copier-coller</span>
+          <button class="btn btn-icon" id="btnCopyDbl" title="Copier">
+            <span class="material-symbols-outlined">content_copy</span>
+          </button>
+          <button class="btn btn-icon" id="btnCloseDblExport" title="Fermer">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <textarea id="dblTextarea" class="export-textarea" readonly></textarea>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         VUE STATISTIQUES
+    ───────────────────────────────────────────── -->
+    <section class="view hidden" id="view-stats" aria-label="Statistiques de la collection">
+      <div class="view-header">
+        <h2 class="view-title">Statistiques</h2>
+      </div>
+      <!-- Compteurs globaux -->
+      <div class="stats-global" id="statsGlobal"></div>
+      <!-- Complétion par pays -->
+      <h3 class="stats-section-title">Complétion par pays</h3>
+      <div class="stats-bars" id="statsBars"></div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         VUE ÉCHANGES
+    ───────────────────────────────────────────── -->
+    <section class="view hidden" id="view-echanges" aria-label="Gestion des échanges">
+      <div class="view-header">
+        <h2 class="view-title">Mes échanges</h2>
+      </div>
+      <div class="echanges-layout">
+        <!-- Entrée de la liste du collègue -->
+        <div class="echange-input-block">
+          <label class="field-label" for="colleagueInput">
+            Colle ici la liste de ton collègue (wantlist ou tradelist) :
+          </label>
+          <textarea id="colleagueInput" class="exchange-textarea" placeholder="Ex: MEX 1,2,3,4&#10;BRA 5,6,7"></textarea>
+          <button class="btn btn-primary" id="btnAnalyse">
+            <span class="material-symbols-outlined">manage_search</span>
+            Analyser
+          </button>
+        </div>
+        <!-- Résultats croisés -->
+        <div class="echange-results" id="echangeResults">
+          <div class="echange-empty">
+            <span class="material-symbols-outlined">swap_horiz</span>
+            <p>Colle la liste d'un collègue et clique sur "Analyser" pour voir les échanges possibles.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════
+       NAVIGATION MOBILE (barre du bas)
+  ═══════════════════════════════════════════════════ -->
+  <nav class="mobile-nav" role="navigation" aria-label="Navigation mobile">
+    <button class="mobile-nav-btn active" data-view="album">
+      <span class="material-symbols-outlined">menu_book</span>
+      <span>Album</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="manquantes">
+      <span class="material-symbols-outlined">search_off</span>
+      <span>Manquantes</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="doublons">
+      <span class="material-symbols-outlined">content_copy</span>
+      <span>Doublons</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="stats">
+      <span class="material-symbols-outlined">leaderboard</span>
+      <span>Stats</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="echanges">
+      <span class="material-symbols-outlined">swap_horiz</span>
+      <span>Échanges</span>
+    </button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════
+       TOAST NOTIFICATION
+  ═══════════════════════════════════════════════════ -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- ═══════════════════════════════════════════════════
+       MODAL CONFIRMATION CLIC SUR VIGNETTE
+  ═══════════════════════════════════════════════════ -->
+  <div class="modal-overlay hidden" id="stickerModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <div class="modal-header" id="modalHeader">
+        <span class="modal-id" id="modalId"></span>
+        <button class="btn btn-icon modal-close" id="btnModalClose" aria-label="Fermer">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-flag-wrap">
+        <img class="modal-flag" id="modalFlag" src="" alt="" />
+      </div>
+      <div class="modal-body">
+        <h3 class="modal-title" id="modalTitle"></h3>
+        <p class="modal-meta" id="modalMeta"></p>
+      </div>
+      <div class="modal-actions" id="modalActions">
+        <button class="btn btn-status status-missing" data-status="missing">
+          <span class="material-symbols-outlined">search_off</span>
+          Manquante
+        </button>
+        <button class="btn btn-status status-owned" data-status="owned">
+          <span class="material-symbols-outlined">check_circle</span>
+          Possédée
+        </button>
+        <button class="btn btn-status status-duplicate" data-status="duplicate">
+          <span class="material-symbols-outlined">content_copy</span>
+          Doublon
+        </button>
+      </div>
+      <!-- Compteur doublons -->
+      <div class="modal-dup-controls hidden" id="modalDupControls">
+        <button class="btn btn-icon" id="btnDupMinus" aria-label="Diminuer">
+          <span class="material-symbols-outlined">remove</span>
+        </button>
+        <span class="dup-count" id="dupCountDisplay">2</span>
+        <button class="btn btn-icon" id="btnDupPlus" aria-label="Augmenter">
+          <span class="material-symbols-outlined">add</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>

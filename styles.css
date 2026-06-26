@@ -271,8 +271,7 @@ body {
   overflow-y: auto;
   position: sticky;
   top: 0;
-  height: calc(100vh - var(--header-height));
-  align-self: start;
+  height: 100vh;
   /* Motif de fond géométrique */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect x='10' y='10' width='4' height='4' fill='%23375AFE' opacity='0.18' rx='1'/%3E%3C/svg%3E");
   background-size: 24px 24px;

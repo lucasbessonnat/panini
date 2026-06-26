@@ -122,7 +122,8 @@ body {
   grid-area: header;
   background: var(--blue-dark);
   border-bottom: 4px solid var(--blue-electric);
-  position: relative;
+  position: sticky;
+  top: 0;
   overflow: hidden;
   z-index: 100;
 }

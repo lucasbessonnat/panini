@@ -576,7 +576,7 @@ function initFilters() {
 }
 
 /**
- * Peuple les <select> de filtres avec les sections uniques.
+ * Peuple les <select> de filtres avec les codes et sections uniques.
  */
 function populateFilterSelects() {
   const sections = [...new Set(stickers.map(s => s.Section))].sort();
@@ -740,11 +740,9 @@ function initExportImport() {
 
   // --- Export texte Manquantes ---
   document.getElementById('btnExportManq').addEventListener('click', () => {
-    const filterPays    = document.getElementById('manqPaysFilter').value;
     const filterSection = document.getElementById('manqSectionFilter').value;
 
     let missing = stickers.filter(s => getStatus(s.ID) === 'missing');
-    if (filterPays)    missing = missing.filter(s => s.Code === filterPays);
     if (filterSection) missing = missing.filter(s => s.Section === filterSection);
 
     const text = generateExportText(missing);
@@ -763,11 +761,9 @@ function initExportImport() {
 
   // --- Export texte Doublons ---
   document.getElementById('btnExportDbl').addEventListener('click', () => {
-    const filterPays    = document.getElementById('dblPaysFilter').value;
     const filterSection = document.getElementById('dblSectionFilter').value;
 
     let duplicates = stickers.filter(s => getStatus(s.ID) === 'duplicate');
-    if (filterPays)    duplicates = duplicates.filter(s => s.Code === filterPays);
     if (filterSection) duplicates = duplicates.filter(s => s.Section === filterSection);
 
     const text = generateExportText(duplicates);

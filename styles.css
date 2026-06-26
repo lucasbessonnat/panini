@@ -94,7 +94,6 @@ body {
   grid-template-rows: var(--header-height) 1fr;
   grid-template-columns: var(--nav-width-desktop) 1fr;
   overflow-x: hidden;
-  align-items: start;
 }
 
 /* Classe utilitaire : élément caché */
@@ -122,14 +121,19 @@ body {
   grid-area: header;
   background: var(--blue-dark);
   border-bottom: 4px solid var(--blue-electric);
-  position: sticky;
-  top: 0;
+  position: relative;
   overflow: hidden;
   z-index: 100;
 }
 
-/* Décoration supprimée — rem. header-wave gardé pour compatibilité JS éventuel */
-.header-wave { display: none; }
+/* Décoration géométrique en arrière-plan */
+.header-wave {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect x='10' y='10' width='4' height='4' fill='%23375AFE' opacity='0.22' rx='1'/%3E%3C/svg%3E");
+  background-size: 24px 24px;
+  pointer-events: none;
+}
 
 .header-inner {
   position: relative;
@@ -139,7 +143,8 @@ body {
   height: 100%;
   padding: 0 var(--sp-sm);
   max-width: var(--content-max);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 /* Marque / logo */
@@ -180,12 +185,13 @@ body {
   color: var(--blue-light);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  display: none;
+  display: none; /* masqué sur petit écran */
 }
 
 /* Barre de progression globale */
 .header-progress {
   flex: 1;
+  min-width: 0;
   max-width: 400px;
 }
 
@@ -220,9 +226,19 @@ body {
   height: 100%;
   background: var(--yellow-lime);
   transition: width 0.4s ease;
-  /* Motif vague dans la barre */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10'%3E%3Cpath d='M0 5 Q5 0 10 5 Q15 10 20 5' stroke='%23025649' stroke-width='1.5' fill='none' opacity='0.35'/%3E%3C/svg%3E");
-  background-size: 20px 10px;
+}
+
+/* Crédit auteur */
+.header-credit {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(141, 186, 254, 0.45);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
 }
 
 /* Actions header */
@@ -245,9 +261,12 @@ body {
   padding: var(--sp-sm) 8px;
   overflow-y: auto;
   position: sticky;
-  top: 0;
-  height: 100vh;
-  max-height: 100vh;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+  align-self: start;
+  /* Motif de fond géométrique */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect x='10' y='10' width='4' height='4' fill='%23375AFE' opacity='0.18' rx='1'/%3E%3C/svg%3E");
+  background-size: 24px 24px;
 }
 
 .nav-btn {
@@ -459,7 +478,7 @@ body {
 .sticker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: var(--sp-xs);
+  gap: 12px;
 }
 
 /* ────────────────────────────
@@ -1492,7 +1511,7 @@ body {
     grid-template-areas:
       "header"
       "main";
-    grid-template-rows: auto 1fr;
+    grid-template-rows: var(--header-height) 1fr;
     grid-template-columns: 1fr;
     padding-bottom: var(--mobile-nav-height);
   }
@@ -1507,39 +1526,25 @@ body {
 
   .brand-sub { display: none; }
 
-  .app-header {
-    height: auto;
-  }
-
-  .header-inner {
-    flex-wrap: wrap;
-    height: auto;
-    padding: var(--sp-xs) var(--sp-sm);
-    gap: var(--sp-xs);
-    align-items: center;
-  }
-
-  .header-brand {
-    flex-shrink: 0;
-  }
-
-  .header-progress {
-    order: 3;
-    flex: 0 0 100%;
-    max-width: 100%;
-  }
-
-  .header-actions {
-    margin-left: auto;
-  }
-
-  .btn-label {
-    display: none;
-  }
-
   .sticker-grid {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .sticker-header {
+    padding: 3px 4px;
+    gap: 2px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .sticker-id {
+    font-size: 11px;
+  }
+
+  .sticker-type-badge {
+    font-size: 8px;
+    padding: 1px 3px;
   }
 
   .echanges-layout {
@@ -1565,8 +1570,8 @@ body {
   .view-header { flex-direction: column; align-items: flex-start; }
 
   .sticker-grid {
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 4px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
   }
 
   .stats-global {
@@ -1583,8 +1588,11 @@ body {
    21. GRAND ÉCRAN — enrichissements
    ─────────────────────────────────────────────────────────────── */
 @media (min-width: 1200px) {
+  .brand-sub { display: block; }
+
   .sticker-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
   }
 }
 
@@ -1624,15 +1632,7 @@ body {
   background-size: 80px 40px;
 }
 
-/* Animation des vagues sur le header */
-@keyframes wave-scroll {
-  from { background-position: 0 0; }
-  to   { background-position: 120px 0; }
-}
-
-.header-wave {
-  animation: wave-scroll 8s linear infinite;
-}
+/* Animation supprimée — motif géométrique statique */
 
 /* ───────────────────────────────────────────────────────────────
    24. FOCUS CLAVIER (accessibilité)
@@ -1648,29 +1648,5 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-/* ───────────────────────────────────────────────────────────────
-   25. CRÉDIT AUTEUR
-   ─────────────────────────────────────────────────────────────── */
-.app-credit {
-  grid-area: main;
-  position: fixed;
-  bottom: 6px;
-  right: 10px;
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--outline);
-  opacity: 0.45;
-  letter-spacing: 0.04em;
-  pointer-events: none;
-  z-index: 50;
-}
-
-@media (max-width: 900px) {
-  .app-credit {
-    bottom: calc(var(--mobile-nav-height) + 6px);
   }
 }

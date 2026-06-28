@@ -48,6 +48,17 @@ let albumPages = [];
 /** ID de la vignette actuellement ouverte dans la modale */
 let modalStickerID = null;
 
+/** Terme de recherche global actuel */
+let searchQuery = '';
+
+/** État actif de la recherche (vrai si filtre actif) */
+let searchActive = false;
+
+/** Toast anti-spam : compteur et timer */
+let toastBatchCount = 0;
+let toastBatchTimer = null;
+let toastBatchMessage = '';
+
 /* ═══════════════════════════════════════════════════════════════
    3. INITIALISATION AU CHARGEMENT
    ═══════════════════════════════════════════════════════════════ */
@@ -70,6 +81,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     initFilters();
     initExportImport();
     initModal();
+    initGlobalSearch();
+    initBoosterModal();
+    initMatchmaker();
 
     // Rendu initial de la vue album
     renderCurrentView();
@@ -320,8 +334,12 @@ function switchView(viewName) {
     view.classList.toggle('hidden', view.id !== `view-${viewName}`);
   });
 
-  // Rendu de la vue
-  renderCurrentView();
+  // Rendu de la vue (avec filtre de recherche si actif)
+  if (searchActive) {
+    applySearchFilter();
+  } else {
+    renderCurrentView();
+  }
 }
 
 /**
@@ -402,14 +420,16 @@ function renderAlbumView() {
   // En-tête de section
   renderAlbumSectionHeader(pageStickers);
 
-  // Grille de vignettes
+  // Grille de vignettes — DocumentFragment pour éviter les reflows multiples
   const grid = document.getElementById('stickerGrid');
-  grid.innerHTML = '';
+  const fragment = document.createDocumentFragment();
 
   pageStickers.forEach(sticker => {
-    const card = buildStickerCard(sticker);
-    grid.appendChild(card);
+    fragment.appendChild(buildStickerCard(sticker));
   });
+
+  grid.innerHTML = '';
+  grid.appendChild(fragment);
 }
 
 /**
@@ -453,6 +473,7 @@ function buildStickerCard(sticker) {
   article.setAttribute('role', 'listitem');
   article.setAttribute('aria-label', `${sticker.ID} — ${sticker.Nom} (${statusLabel(status)})`);
   article.dataset.id = sticker.ID;
+  article.dataset.type = sticker.Type || '';
 
   // Badge doublon
   const dupBadge = status === 'duplicate'
@@ -551,10 +572,12 @@ function renderPaysView() {
     </div>
   `;
 
-  // Grille des vignettes du pays
+  // Grille des vignettes du pays — DocumentFragment
   const grid = document.getElementById('paysGrid');
+  const frag = document.createDocumentFragment();
+  paysStickers.forEach(s => frag.appendChild(buildStickerCard(s)));
   grid.innerHTML = '';
-  paysStickers.forEach(s => grid.appendChild(buildStickerCard(s)));
+  grid.appendChild(frag);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -643,15 +666,19 @@ function renderDoublonsView() {
  * @param {boolean} showDupCount - Afficher le compteur de doublons
  */
 function renderStickerList(container, stickersList, showDupCount = false) {
-  container.innerHTML = '';
+  // DocumentFragment pour éviter les reflows multiples
+  const frag = document.createDocumentFragment();
 
   if (!stickersList.length) {
-    container.innerHTML = `
-      <div style="padding:var(--sp-lg);text-align:center;color:var(--outline);">
-        <span class="material-symbols-outlined" style="font-size:48px;opacity:0.3;display:block;margin-bottom:12px;">check_circle</span>
-        <p style="font-weight:700;font-size:14px;">Aucune vignette dans cette catégorie.</p>
-      </div>
+    const empty = document.createElement('div');
+    empty.style.cssText = 'padding:var(--sp-lg);text-align:center;color:var(--outline);';
+    empty.innerHTML = `
+      <span class="material-symbols-outlined" style="font-size:48px;opacity:0.3;display:block;margin-bottom:12px;">check_circle</span>
+      <p style="font-weight:700;font-size:14px;">Aucune vignette dans cette catégorie.</p>
     `;
+    frag.appendChild(empty);
+    container.innerHTML = '';
+    container.appendChild(frag);
     return;
   }
 
@@ -663,7 +690,6 @@ function renderStickerList(container, stickersList, showDupCount = false) {
   });
 
   Object.entries(grouped).forEach(([code, items]) => {
-    // En-tête du groupe pays
     const sectionName = items[0]?.Section || code;
     const flagURL     = items[0]?.Drapeau || '';
 
@@ -674,9 +700,8 @@ function renderStickerList(container, stickersList, showDupCount = false) {
       <span>${escHtml(sectionName)}</span>
       <span style="margin-left:auto;font-size:11px;color:var(--outline);">${items.length} vignette${items.length > 1 ? 's' : ''}</span>
     `;
-    container.appendChild(header);
+    frag.appendChild(header);
 
-    // Items de ce groupe
     items.forEach(s => {
       const item = document.createElement('div');
       item.className = 'list-item';
@@ -697,9 +722,12 @@ function renderStickerList(container, stickersList, showDupCount = false) {
       `;
 
       item.addEventListener('click', () => openModal(s.ID));
-      container.appendChild(item);
+      frag.appendChild(item);
     });
   });
+
+  container.innerHTML = '';
+  container.appendChild(frag);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1049,6 +1077,7 @@ function initModal() {
       if (status === 'duplicate') {
         document.getElementById('modalDupControls').classList.remove('hidden');
         document.getElementById('dupCountDisplay').textContent = getDupCount(modalStickerID);
+        updateDupMinusState();
       } else {
         document.getElementById('modalDupControls').classList.add('hidden');
       }
@@ -1071,8 +1100,20 @@ function initModal() {
     const newCount = current - 1;
     setStatus(modalStickerID, 'duplicate', newCount);
     document.getElementById('dupCountDisplay').textContent = newCount;
+    // Mettre à jour l'état disabled
+    document.getElementById('btnDupMinus').disabled = (newCount <= 2);
     refreshStickerInView(modalStickerID);
   });
+}
+
+/**
+ * Met à jour l'état disabled du bouton Moins en fonction du count actuel.
+ */
+function updateDupMinusState() {
+  const btnMinus = document.getElementById('btnDupMinus');
+  if (!modalStickerID) { btnMinus.disabled = false; return; }
+  const count = collectionState[modalStickerID]?.count || 2;
+  btnMinus.disabled = (count <= 2);
 }
 
 /**
@@ -1118,6 +1159,7 @@ function openModal(id) {
   if (status === 'duplicate') {
     dupControls.classList.remove('hidden');
     document.getElementById('dupCountDisplay').textContent = getDupCount(id);
+    updateDupMinusState();
   } else {
     dupControls.classList.add('hidden');
   }
@@ -1186,6 +1228,10 @@ function updateGlobalProgress() {
   document.getElementById('progressTotal').textContent = total;
   document.getElementById('progressPct').textContent = `${pct}%`;
   document.getElementById('progressFill').style.width = `${pct}%`;
+
+  // Badge compact mobile
+  const badge = document.getElementById('progressPctBadge');
+  if (badge) badge.textContent = `${pct}%`;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1223,11 +1269,42 @@ let toastTimer = null;
 
 /**
  * Affiche un message toast temporaire.
+ * Anti-spam : si plusieurs toasts identiques s'enchaînent rapidement,
+ * un seul toast est affiché et mis à jour avec un compteur.
  * @param {string} message - Message à afficher
  * @param {number} [duration=2500] - Durée en ms
+ * @param {boolean} [batchable=false] - Si true, regroupe les appels rapides
  */
-function showToast(message, duration = 2500) {
+function showToast(message, duration = 2500, batchable = false) {
   const toast = document.getElementById('toast');
+
+  if (batchable) {
+    // Mode batch : on incrémente un compteur au lieu d'empiler les toasts
+    if (toastBatchMessage === message) {
+      toastBatchCount++;
+      const baseMsg = message.replace(/ \(\d+\)$/, '');
+      toast.textContent = toastBatchCount > 1 ? `${baseMsg} (${toastBatchCount})` : baseMsg;
+    } else {
+      toastBatchCount = 1;
+      toastBatchMessage = message;
+      toast.textContent = message;
+    }
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    clearTimeout(toastBatchTimer);
+    toastBatchTimer = setTimeout(() => {
+      toastBatchCount = 0;
+      toastBatchMessage = '';
+    }, duration + 500);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+    }, duration);
+    return;
+  }
+
+  // Mode normal
+  toastBatchCount = 0;
+  toastBatchMessage = '';
   toast.textContent = message;
   toast.classList.add('show');
   clearTimeout(toastTimer);
@@ -1250,4 +1327,510 @@ function showLoadingSpinner() {
 
 function hideLoadingSpinner() {
   // Le spinner disparaîtra au prochain renderAlbumView()
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   18. RECHERCHE GLOBALE
+   ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Initialise la barre de recherche globale dans le header.
+ * Filtre la vue courante en temps réel.
+ */
+function initGlobalSearch() {
+  const input  = document.getElementById('globalSearch');
+  const clearBtn = document.getElementById('searchClear');
+
+  if (!input) return;
+
+  input.addEventListener('input', () => {
+    searchQuery = input.value.trim().toLowerCase();
+    searchActive = searchQuery.length > 0;
+    clearBtn.classList.toggle('hidden', !searchActive);
+    applySearchFilter();
+  });
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    searchQuery = '';
+    searchActive = false;
+    clearBtn.classList.add('hidden');
+    applySearchFilter();
+  });
+}
+
+/**
+ * Applique le filtre de recherche sur la vue courante.
+ * Sur les vues grille (album/pays), filtre directement les cartes.
+ * Sur les vues liste, re-rend avec filtrage.
+ */
+function applySearchFilter() {
+  // Supprimer tout bandeau de recherche existant
+  document.querySelectorAll('.search-results-banner').forEach(b => b.remove());
+
+  if (!searchActive) {
+    // Restaurer la vue normale
+    renderCurrentView();
+    return;
+  }
+
+  const q = searchQuery;
+
+  // Filtrer parmi TOUTES les vignettes connues
+  const matched = stickers.filter(s => {
+    const idMatch   = s.ID.toLowerCase().includes(q);
+    const nomMatch  = (s.Nom || '').toLowerCase().includes(q);
+    const codeMatch = (s.Code || '').toLowerCase().includes(q);
+    return idMatch || nomMatch || codeMatch;
+  });
+
+  // Afficher selon la vue courante
+  if (currentView === 'album' || currentView === 'pays') {
+    renderSearchResultsGrid(matched, q);
+  } else if (currentView === 'manquantes') {
+    const filtered = matched.filter(s => getStatus(s.ID) === 'missing');
+    renderSearchResultsList(filtered, q, false);
+  } else if (currentView === 'doublons') {
+    const filtered = matched.filter(s => getStatus(s.ID) === 'duplicate');
+    renderSearchResultsList(filtered, q, true);
+  } else {
+    // Pour les autres vues, on affiche une grille globale
+    renderSearchResultsGrid(matched, q);
+  }
+}
+
+/**
+ * Affiche les résultats de recherche sous forme de grille.
+ * @param {Array} results - Vignettes correspondantes
+ * @param {string} q - Terme recherché
+ */
+function renderSearchResultsGrid(results, q) {
+  // Trouver le conteneur de grille actif
+  let grid = null;
+  let container = null;
+
+  if (currentView === 'pays') {
+    grid = document.getElementById('paysGrid');
+    container = document.getElementById('view-pays');
+  } else {
+    grid = document.getElementById('stickerGrid');
+    container = document.getElementById('view-album');
+  }
+
+  if (!grid || !container) return;
+
+  // Bandeau résultat
+  const banner = createSearchBanner(results.length, q);
+  grid.parentNode.insertBefore(banner, grid);
+
+  // Grille filtrée avec DocumentFragment
+  const frag = document.createDocumentFragment();
+  results.forEach(s => frag.appendChild(buildStickerCard(s)));
+  grid.innerHTML = '';
+  grid.appendChild(frag);
+}
+
+/**
+ * Affiche les résultats de recherche sous forme de liste.
+ * @param {Array} results
+ * @param {string} q
+ * @param {boolean} showDupCount
+ */
+function renderSearchResultsList(results, q, showDupCount) {
+  const listId = currentView === 'manquantes' ? 'manqList' : 'dblList';
+  const listEl = document.getElementById(listId);
+  if (!listEl) return;
+
+  const banner = createSearchBanner(results.length, q);
+  listEl.parentNode.insertBefore(banner, listEl);
+
+  renderStickerList(listEl, results, showDupCount);
+}
+
+/**
+ * Crée un bandeau d'info de résultat de recherche.
+ * @param {number} count
+ * @param {string} q
+ * @returns {HTMLElement}
+ */
+function createSearchBanner(count, q) {
+  const banner = document.createElement('div');
+  banner.className = 'search-results-banner';
+  banner.innerHTML = `
+    <span class="material-symbols-outlined" style="font-size:16px;">search</span>
+    <span><strong>${count}</strong> résultat${count !== 1 ? 's' : ''} pour "<em>${escHtml(q)}</em>"</span>
+    <button class="search-banner-clear" id="searchBannerClear">
+      <span class="material-symbols-outlined" style="font-size:14px;">close</span>
+      Effacer
+    </button>
+  `;
+  banner.querySelector('#searchBannerClear').addEventListener('click', () => {
+    const input = document.getElementById('globalSearch');
+    if (input) input.value = '';
+    searchQuery = '';
+    searchActive = false;
+    document.getElementById('searchClear').classList.add('hidden');
+    applySearchFilter();
+  });
+  return banner;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   19. MODE OUVERTURE DE BOOSTER
+   ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Initialise le FAB et la modale d'ouverture de booster.
+ */
+function initBoosterModal() {
+  const fab     = document.getElementById('fabBooster');
+  const modal   = document.getElementById('boosterModal');
+  const btnClose   = document.getElementById('btnBoosterClose');
+  const btnCancel  = document.getElementById('btnBoosterCancel');
+  const btnValidate = document.getElementById('btnBoosterValidate');
+  const input   = document.getElementById('boosterInput');
+  const preview = document.getElementById('boosterPreview');
+
+  if (!fab || !modal) return;
+
+  // Ouverture
+  fab.addEventListener('click', () => {
+    input.value = '';
+    preview.innerHTML = '';
+    modal.classList.remove('hidden');
+    input.focus();
+  });
+
+  // Fermeture
+  [btnClose, btnCancel].forEach(btn => {
+    btn && btn.addEventListener('click', closeBoosterModal);
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeBoosterModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeBoosterModal();
+  });
+
+  // Prévisualisation en temps réel
+  input.addEventListener('input', () => {
+    updateBoosterPreview(input.value, preview);
+  });
+
+  // Validation
+  btnValidate.addEventListener('click', () => {
+    const ids = parseBoosterInput(input.value);
+    if (ids.valid.length === 0) {
+      showToast('⚠️ Aucun ID reconnu dans la saisie.');
+      return;
+    }
+
+    ids.valid.forEach(id => {
+      const current = getStatus(id);
+      if (current === 'missing') {
+        setStatus(id, 'owned');
+      } else if (current === 'owned') {
+        setStatus(id, 'duplicate', Math.max(2, (collectionState[id]?.count || 0) + 1));
+      } else if (current === 'duplicate') {
+        const newCount = (collectionState[id]?.count || 2) + 1;
+        setStatus(id, 'duplicate', newCount);
+      }
+    });
+
+    renderCurrentView();
+    closeBoosterModal();
+    showToast(`✅ ${ids.valid.length} vignette${ids.valid.length > 1 ? 's' : ''} ajoutée${ids.valid.length > 1 ? 's' : ''} !`, 3000);
+  });
+}
+
+function closeBoosterModal() {
+  document.getElementById('boosterModal').classList.add('hidden');
+}
+
+/**
+ * Parse une chaîne de saisie booster (IDs séparés par espaces).
+ * @param {string} raw
+ * @returns {{ valid: string[], invalid: string[] }}
+ */
+function parseBoosterInput(raw) {
+  const knownIDs = new Set(stickers.map(s => s.ID));
+  const tokens = raw.trim().toUpperCase().split(/\s+/).filter(Boolean);
+  const valid = [];
+  const invalid = [];
+
+  tokens.forEach(t => {
+    if (knownIDs.has(t)) {
+      valid.push(t);
+    } else {
+      invalid.push(t);
+    }
+  });
+
+  return { valid, invalid };
+}
+
+/**
+ * Met à jour la prévisualisation des IDs dans la modale booster.
+ * @param {string} raw
+ * @param {HTMLElement} preview
+ */
+function updateBoosterPreview(raw, preview) {
+  if (!raw.trim()) {
+    preview.innerHTML = '';
+    return;
+  }
+  const { valid, invalid } = parseBoosterInput(raw);
+  const frag = document.createDocumentFragment();
+
+  valid.forEach(id => {
+    const tag = document.createElement('span');
+    tag.className = 'booster-tag valid';
+    tag.textContent = id;
+    frag.appendChild(tag);
+  });
+
+  invalid.forEach(id => {
+    const tag = document.createElement('span');
+    tag.className = 'booster-tag invalid';
+    tag.textContent = id;
+    frag.appendChild(tag);
+  });
+
+  preview.innerHTML = '';
+  preview.appendChild(frag);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   20. MATCHMAKER — REFONTE DES ÉCHANGES
+   ═══════════════════════════════════════════════════════════════ */
+
+/** Collection parsée de l'ami (Map: id → entry) */
+let friendCollection = null;
+
+/**
+ * Initialise le module Matchmaker.
+ */
+function initMatchmaker() {
+  const btnAnalyse = document.getElementById('btnAnalyse');
+  const inputFriendJSON = document.getElementById('inputFriendJSON');
+  const btnExportMatch = document.getElementById('btnExportMatch');
+  const btnCopyMatch   = document.getElementById('btnCopyMatch');
+  const btnCopyMatchText = document.getElementById('btnCopyMatchText');
+  const btnCloseMatchExport = document.getElementById('btnCloseMatchExport');
+
+  if (!btnAnalyse) return;
+
+  btnAnalyse.addEventListener('click', runMatchmaker);
+
+  // Import fichier JSON ami
+  inputFriendJSON && inputFriendJSON.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      document.getElementById('colleagueInput').value = ev.target.result;
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // Export récap texte
+  btnExportMatch && btnExportMatch.addEventListener('click', exportMatchSummary);
+  btnCopyMatch && btnCopyMatch.addEventListener('click', exportMatchSummary);
+
+  btnCopyMatchText && btnCopyMatchText.addEventListener('click', () => {
+    copyTextarea('matchTextarea');
+  });
+
+  btnCloseMatchExport && btnCloseMatchExport.addEventListener('click', () => {
+    document.getElementById('matchExportZone').classList.add('hidden');
+  });
+}
+
+/**
+ * Parse la collection d'un ami depuis JSON ou liste texte.
+ * @param {string} raw
+ * @returns {Object|null} - collectionState-like object ou null si erreur
+ */
+function parseFriendCollection(raw) {
+  // Tentative JSON
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed; // Format JSON (collectionState)
+    }
+  } catch (e) {
+    // pas du JSON, on essaie le format texte
+  }
+
+  // Format texte brut : "CODE 1,2,3\nCODE 4,5"
+  const knownIDs = new Set(stickers.map(s => s.ID));
+  const ids = parseTextList(raw);
+  if (ids.size === 0) return null;
+
+  // Convertir en format collectionState (les IDs listés = owned/duplicate)
+  const result = {};
+  stickers.forEach(s => {
+    result[s.ID] = { status: 'missing', count: 0 };
+  });
+  ids.forEach(id => {
+    if (knownIDs.has(id)) {
+      result[id] = { status: 'owned', count: 0 };
+    }
+  });
+  return result;
+}
+
+/**
+ * Exécute l'analyse de correspondance (matchmaking).
+ */
+function runMatchmaker() {
+  const raw = document.getElementById('colleagueInput').value.trim();
+  const resultsEl = document.getElementById('matchmakerResults');
+  const emptyEl   = document.getElementById('echangeResults');
+
+  if (!raw) {
+    showToast('⚠️ La liste de ton ami est vide.');
+    return;
+  }
+
+  friendCollection = parseFriendCollection(raw);
+
+  if (!friendCollection) {
+    showToast('❌ Format non reconnu. Utilise le JSON ou le format CODE 1,2,3.');
+    return;
+  }
+
+  const knownIDs = new Set(stickers.map(s => s.ID));
+
+  // Mes manquantes
+  const mesManquantes = new Set(
+    stickers.filter(s => getStatus(s.ID) === 'missing').map(s => s.ID)
+  );
+
+  // Mes doublons
+  const mesDoublons = new Set(
+    stickers.filter(s => getStatus(s.ID) === 'duplicate').map(s => s.ID)
+  );
+
+  // Manquantes de l'ami (statut missing dans sa collection)
+  const amiManquantes = new Set(
+    stickers.filter(s => {
+      const entry = friendCollection[s.ID];
+      return !entry || entry.status === 'missing';
+    }).map(s => s.ID)
+  );
+
+  // Doublons de l'ami
+  const amiDoublons = new Set(
+    stickers.filter(s => {
+      const entry = friendCollection[s.ID];
+      return entry && entry.status === 'duplicate';
+    }).map(s => s.ID)
+  );
+
+  // Ce que je peux lui donner : mes doublons croisés avec ses manquantes
+  const jeDonne = [...mesDoublons].filter(id => amiManquantes.has(id));
+
+  // Ce qu'il/elle peut me donner : ses doublons croisés avec mes manquantes
+  const ilDonne = [...mesManquantes].filter(id => amiDoublons.has(id));
+
+  // Affichage
+  emptyEl.classList.add('hidden');
+  resultsEl.classList.remove('hidden');
+
+  // Résumé
+  document.getElementById('matchmakerSummary').innerHTML = `
+    <div class="matchmaker-summary-stat">
+      <span class="stat-val">${jeDonne.length}</span>
+      <span class="stat-lbl">Je donne</span>
+    </div>
+    <div class="matchmaker-summary-divider"></div>
+    <div class="matchmaker-summary-stat">
+      <span class="stat-val">${ilDonne.length}</span>
+      <span class="stat-lbl">Je reçois</span>
+    </div>
+    <div class="matchmaker-summary-divider"></div>
+    <div class="matchmaker-summary-stat">
+      <span class="stat-val">${Math.min(jeDonne.length, ilDonne.length)}</span>
+      <span class="stat-lbl">Échange net possible</span>
+    </div>
+  `;
+
+  // Compteurs
+  document.getElementById('giveCount').textContent = jeDonne.length;
+  document.getElementById('receiveCount').textContent = ilDonne.length;
+
+  // Listes tags
+  renderMatchTags(document.getElementById('giveList'), jeDonne, 'give');
+  renderMatchTags(document.getElementById('receiveList'), ilDonne, 'receive');
+
+  // Cacher l'export précédent
+  document.getElementById('matchExportZone').classList.add('hidden');
+}
+
+/**
+ * Rend les tags de correspondance dans un panneau.
+ * @param {HTMLElement} container
+ * @param {string[]} ids
+ * @param {'give'|'receive'} direction
+ */
+function renderMatchTags(container, ids, direction) {
+  const frag = document.createDocumentFragment();
+
+  if (ids.length === 0) {
+    const empty = document.createElement('p');
+    empty.style.cssText = 'color:var(--outline);font-size:13px;font-style:italic;padding:4px;';
+    empty.textContent = 'Aucune vignette correspondante.';
+    frag.appendChild(empty);
+  } else {
+    ids.forEach(id => {
+      const s = stickers.find(x => x.ID === id);
+      const tag = document.createElement('div');
+      tag.className = 'match-tag';
+      tag.title = `${id} — ${s?.Nom || ''}`;
+      tag.innerHTML = `
+        ${escHtml(id)}
+        <span class="tag-name">${escHtml(s?.Nom || '')}</span>
+      `;
+      tag.addEventListener('click', () => openModal(id));
+      frag.appendChild(tag);
+    });
+  }
+
+  container.innerHTML = '';
+  container.appendChild(frag);
+}
+
+/**
+ * Génère et affiche l'export texte du récapitulatif d'échange.
+ */
+function exportMatchSummary() {
+  const giveList    = Array.from(document.getElementById('giveList').querySelectorAll('.match-tag')).map(t => t.title.split(' — ')[0]);
+  const receiveList = Array.from(document.getElementById('receiveList').querySelectorAll('.match-tag')).map(t => t.title.split(' — ')[0]);
+
+  const giveText    = giveList.length ? giveList.join(', ') : 'Aucun doublon à donner';
+  const receiveText = receiveList.length ? receiveList.join(', ') : 'Aucune vignette à recevoir';
+
+  const text = [
+    '=== RÉCAPITULATIF ÉCHANGE PANINI WC2026 ===',
+    '',
+    `Ce que je peux te donner (${giveList.length}) :`,
+    giveText,
+    '',
+    `Ce que tu peux me donner (${receiveList.length}) :`,
+    receiveText,
+    '',
+    `Généré le ${new Date().toLocaleDateString('fr-FR')} via Panini WC2026 Tracker`,
+  ].join('\n');
+
+  document.getElementById('matchTextarea').value = text;
+  const zone = document.getElementById('matchExportZone');
+  zone.classList.remove('hidden');
+  zone.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }

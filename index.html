@@ -44,6 +44,27 @@
         </div>
       </div>
 
+      <!-- Badge progression mobile (affiché <700px uniquement) -->
+      <div class="header-progress-badge" id="headerProgressBadge">
+        <span id="progressPctBadge">0%</span>
+      </div>
+
+      <!-- Barre de recherche globale -->
+      <div class="header-search" id="headerSearch">
+        <span class="material-symbols-outlined search-icon">search</span>
+        <input
+          type="search"
+          id="globalSearch"
+          class="search-input"
+          placeholder="Joueur ou ID (ex: Mbappé, FRA10)"
+          autocomplete="off"
+          aria-label="Recherche globale"
+        />
+        <button class="search-clear hidden" id="searchClear" aria-label="Effacer">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
       <!-- Actions globales : import / export -->
       <div class="header-actions">
         <button class="btn btn-secondary" id="btnExport" title="Exporter ma collection">
@@ -233,30 +254,99 @@
     </section>
 
     <!-- ─────────────────────────────────────────────
-         VUE ÉCHANGES
+         VUE ÉCHANGES — MATCHMAKER
     ───────────────────────────────────────────── -->
     <section class="view hidden" id="view-echanges" aria-label="Gestion des échanges">
       <div class="view-header">
-        <h2 class="view-title">Mes échanges</h2>
+        <h2 class="view-title">Matchmaker</h2>
       </div>
-      <div class="echanges-layout">
-        <!-- Entrée de la liste du collègue -->
-        <div class="echange-input-block">
-          <label class="field-label" for="colleagueInput">
-            Colle ici la liste de ton collègue (wantlist ou tradelist) :
-          </label>
-          <textarea id="colleagueInput" class="exchange-textarea" placeholder="Ex: MEX 1,2,3,4&#10;BRA 5,6,7"></textarea>
-          <button class="btn btn-primary" id="btnAnalyse">
-            <span class="material-symbols-outlined">manage_search</span>
-            Analyser
+
+      <!-- Import de la collection d'un ami -->
+      <div class="matchmaker-import-block">
+        <div class="matchmaker-import-header">
+          <span class="material-symbols-outlined">person_add</span>
+          <strong>Importer la collection d'un ami</strong>
+          <span class="matchmaker-format-hint">Format JSON (.json) ou texte brut (CODE 1,2,3)</span>
+        </div>
+        <div class="matchmaker-import-row">
+          <textarea
+            id="colleagueInput"
+            class="exchange-textarea matchmaker-textarea"
+            placeholder="Colle ici le JSON de ton ami OU sa liste texte :&#10;{ &quot;FRA1&quot;: {&quot;status&quot;:&quot;owned&quot;...} }&#10;— ou —&#10;MEX 1,2,3&#10;BRA 4,5,6"
+            rows="5"
+          ></textarea>
+          <div class="matchmaker-import-actions">
+            <label class="btn btn-secondary" title="Importer un fichier JSON">
+              <span class="material-symbols-outlined">upload_file</span>
+              <span>Fichier JSON</span>
+              <input type="file" accept=".json" id="inputFriendJSON" class="sr-only" />
+            </label>
+            <button class="btn btn-primary" id="btnAnalyse">
+              <span class="material-symbols-outlined">manage_search</span>
+              Analyser
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Résultats Matchmaker -->
+      <div class="matchmaker-results hidden" id="matchmakerResults">
+        <!-- En-tête résumé -->
+        <div class="matchmaker-summary" id="matchmakerSummary"></div>
+
+        <!-- Vue scindée -->
+        <div class="matchmaker-split">
+          <!-- Ce que je peux lui donner -->
+          <div class="match-panel match-give">
+            <div class="match-panel-title">
+              <span class="material-symbols-outlined">arrow_upward</span>
+              Je peux lui donner
+              <span class="match-count" id="giveCount">0</span>
+            </div>
+            <div class="match-panel-body" id="giveList"></div>
+          </div>
+
+          <!-- Ce qu'il peut me donner -->
+          <div class="match-panel match-receive">
+            <div class="match-panel-title">
+              <span class="material-symbols-outlined">arrow_downward</span>
+              Il/Elle peut me donner
+              <span class="match-count" id="receiveCount">0</span>
+            </div>
+            <div class="match-panel-body" id="receiveList"></div>
+          </div>
+        </div>
+
+        <!-- Export de l'échange -->
+        <div class="matchmaker-export">
+          <button class="btn btn-primary" id="btnExportMatch">
+            <span class="material-symbols-outlined">content_paste</span>
+            Exporter le récapitulatif
+          </button>
+          <button class="btn btn-secondary" id="btnCopyMatch">
+            <span class="material-symbols-outlined">content_copy</span>
+            Copier
           </button>
         </div>
-        <!-- Résultats croisés -->
-        <div class="echange-results" id="echangeResults">
-          <div class="echange-empty">
-            <span class="material-symbols-outlined">swap_horiz</span>
-            <p>Colle la liste d'un collègue et clique sur "Analyser" pour voir les échanges possibles.</p>
+        <div class="export-zone hidden" id="matchExportZone">
+          <div class="export-zone-header">
+            <span>Récapitulatif à envoyer</span>
+            <button class="btn btn-icon" id="btnCopyMatchText" title="Copier">
+              <span class="material-symbols-outlined">content_copy</span>
+            </button>
+            <button class="btn btn-icon" id="btnCloseMatchExport" title="Fermer">
+              <span class="material-symbols-outlined">close</span>
+            </button>
           </div>
+          <textarea id="matchTextarea" class="export-textarea" readonly></textarea>
+        </div>
+      </div>
+
+      <!-- État vide -->
+      <div class="echange-results" id="echangeResults">
+        <div class="echange-empty">
+          <span class="material-symbols-outlined">swap_horiz</span>
+          <p>Importe la collection d'un ami et clique sur "Analyser" pour voir les échanges possibles.</p>
         </div>
       </div>
     </section>
@@ -288,6 +378,47 @@
       <span>Échanges</span>
     </button>
   </nav>
+
+  <!-- ═══════════════════════════════════════════════════
+       FAB — OUVERTURE DE BOOSTER
+  ═══════════════════════════════════════════════════ -->
+  <button class="fab" id="fabBooster" aria-label="Ouvrir un booster" title="Ouvrir un booster">
+    <span class="material-symbols-outlined">open_in_new</span>
+  </button>
+
+  <!-- ═══════════════════════════════════════════════════
+       MODALE BOOSTER
+  ═══════════════════════════════════════════════════ -->
+  <div class="modal-overlay hidden" id="boosterModal" role="dialog" aria-modal="true" aria-labelledby="boosterTitle">
+    <div class="modal-card booster-card">
+      <div class="modal-header booster-header" id="boosterHeader">
+        <span class="modal-id" id="boosterTitle">📦 Ouvrir un booster</span>
+        <button class="btn btn-icon modal-close" id="btnBoosterClose" aria-label="Fermer">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="booster-body">
+        <label class="field-label" for="boosterInput">
+          Saisis les IDs séparés par des espaces :
+        </label>
+        <p class="booster-hint">Ex : <code>MEX4 FRA12 ENG2 BRA7</code></p>
+        <textarea
+          id="boosterInput"
+          class="exchange-textarea booster-textarea"
+          placeholder="MEX4 FRA12 ENG2 BRA7 ARG1..."
+          rows="4"
+        ></textarea>
+        <div class="booster-preview" id="boosterPreview"></div>
+      </div>
+      <div class="booster-footer">
+        <button class="btn btn-secondary" id="btnBoosterCancel">Annuler</button>
+        <button class="btn btn-primary" id="btnBoosterValidate">
+          <span class="material-symbols-outlined">check_circle</span>
+          Valider
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- ═══════════════════════════════════════════════════
        TOAST NOTIFICATION

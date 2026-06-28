@@ -33,23 +33,7 @@
         </div>
       </div>
 
-      <!-- M3 — Barre de recherche globale -->
-      <div class="header-search" id="headerSearch">
-        <span class="material-symbols-outlined header-search-icon" aria-hidden="true">search</span>
-        <input
-          type="search"
-          class="header-search-input"
-          id="globalSearchInput"
-          placeholder="ID ou joueur…"
-          aria-label="Recherche globale de vignettes"
-          autocomplete="off"
-        />
-        <button class="header-search-clear" id="globalSearchClear" aria-label="Effacer la recherche">
-          <span class="material-symbols-outlined" style="font-size:16px">close</span>
-        </button>
-      </div>
-
-      <!-- Barre de progression globale (desktop) -->
+      <!-- Barre de progression globale -->
       <div class="header-progress" id="headerProgress">
         <div class="progress-label">
           <span id="progressOwned">0</span> / <span id="progressTotal">980</span>
@@ -58,11 +42,6 @@
         <div class="progress-track">
           <div class="progress-fill" id="progressFill" style="width:0%"></div>
         </div>
-      </div>
-
-      <!-- M1 — Badge compact % (mobile uniquement) -->
-      <div class="header-progress-badge" id="headerProgressBadge" aria-label="Progression">
-        <span id="progressPctMobile">0%</span>
       </div>
 
       <!-- Actions globales : import / export -->
@@ -254,60 +233,30 @@
     </section>
 
     <!-- ─────────────────────────────────────────────
-         VUE ÉCHANGES — MATCHMAKER
+         VUE ÉCHANGES
     ───────────────────────────────────────────── -->
     <section class="view hidden" id="view-echanges" aria-label="Gestion des échanges">
       <div class="view-header">
-        <h2 class="view-title">Matchmaker</h2>
+        <h2 class="view-title">Mes échanges</h2>
       </div>
-
-      <!-- Onglets Import -->
-      <div class="matchmaker-tabs">
-        <button class="matchmaker-tab active" data-tab="texte">Texte brut</button>
-        <button class="matchmaker-tab" data-tab="json">JSON collection</button>
-      </div>
-
-      <!-- Panneau Texte brut -->
-      <div class="matchmaker-tab-pane active" id="matchmaker-pane-texte">
-        <div class="matchmaker-import-block">
-          <label class="field-label" for="colleagueInputTexte">
-            Colle ici la liste brute de ton ami (wantlist <em>ou</em> tradelist) :
+      <div class="echanges-layout">
+        <!-- Entrée de la liste du collègue -->
+        <div class="echange-input-block">
+          <label class="field-label" for="colleagueInput">
+            Colle ici la liste de ton collègue (wantlist ou tradelist) :
           </label>
-          <textarea id="colleagueInputTexte" class="exchange-textarea" style="min-height:120px"
-            placeholder="Ex: MEX 1,2,3,4&#10;BRA 5,6,7&#10;FRA 10,11"></textarea>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button class="btn btn-primary" id="btnAnalyseTexte">
-              <span class="material-symbols-outlined">manage_search</span>
-              Analyser
-            </button>
-            <span class="booster-hint">Format : <code>CODE numéros,séparés,par,virgules</code></span>
-          </div>
+          <textarea id="colleagueInput" class="exchange-textarea" placeholder="Ex: MEX 1,2,3,4&#10;BRA 5,6,7"></textarea>
+          <button class="btn btn-primary" id="btnAnalyse">
+            <span class="material-symbols-outlined">manage_search</span>
+            Analyser
+          </button>
         </div>
-      </div>
-
-      <!-- Panneau JSON -->
-      <div class="matchmaker-tab-pane" id="matchmaker-pane-json">
-        <div class="matchmaker-import-block">
-          <label class="field-label" for="colleagueInputJSON">
-            Colle ici la sauvegarde JSON de ton ami (export de son application) :
-          </label>
-          <textarea id="colleagueInputJSON" class="exchange-textarea" style="min-height:120px"
-            placeholder='{ "FRA1": { "status": "duplicate", "count": 2 }, "MEX4": { "status": "missing" } }'></textarea>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button class="btn btn-primary" id="btnAnalyseJSON">
-              <span class="material-symbols-outlined">manage_search</span>
-              Analyser
-            </button>
-            <span class="booster-hint">Accepte le fichier JSON exporté depuis cette application.</span>
+        <!-- Résultats croisés -->
+        <div class="echange-results" id="echangeResults">
+          <div class="echange-empty">
+            <span class="material-symbols-outlined">swap_horiz</span>
+            <p>Colle la liste d'un collègue et clique sur "Analyser" pour voir les échanges possibles.</p>
           </div>
-        </div>
-      </div>
-
-      <!-- Résultats Matchmaker -->
-      <div id="matchmakerResults">
-        <div class="echange-empty">
-          <span class="material-symbols-outlined">swap_horiz</span>
-          <p>Importe la liste de ton ami et clique sur "Analyser" pour générer le match.</p>
         </div>
       </div>
     </section>
@@ -386,48 +335,6 @@
         <button class="btn btn-icon" id="btnDupPlus" aria-label="Augmenter">
           <span class="material-symbols-outlined">add</span>
         </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════
-       M3 — FAB BOOSTER
-  ═══════════════════════════════════════════════════ -->
-  <button class="fab-booster" id="fabBooster" title="Ouvrir un booster" aria-label="Ouvrir un booster">
-    <span class="material-symbols-outlined">add_card</span>
-  </button>
-
-  <!-- ═══════════════════════════════════════════════════
-       M3 — MODALE BOOSTER (saisie rapide d'IDs)
-  ═══════════════════════════════════════════════════ -->
-  <div class="booster-modal-overlay hidden" id="boosterModal" role="dialog" aria-modal="true" aria-labelledby="boosterModalTitle">
-    <div class="booster-modal-card">
-      <div class="booster-modal-header">
-        <span class="material-symbols-outlined" aria-hidden="true">add_card</span>
-        <h3 id="boosterModalTitle">Ouverture de booster</h3>
-        <button class="btn btn-icon" id="btnBoosterClose" style="background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.3);color:#fff;margin-left:auto;" aria-label="Fermer">
-          <span class="material-symbols-outlined">close</span>
-        </button>
-      </div>
-      <div class="booster-modal-body">
-        <p class="booster-hint">Saisis les IDs séparés par des espaces. Exemple : <strong>MEX4 FRA12 ENG2 ARG1</strong></p>
-        <input
-          type="text"
-          class="booster-input"
-          id="boosterInput"
-          placeholder="MEX4 FRA12 ENG2…"
-          autocomplete="off"
-          autocapitalize="characters"
-          spellcheck="false"
-        />
-        <div class="booster-preview" id="boosterPreview" aria-live="polite"></div>
-      </div>
-      <div class="booster-modal-footer">
-        <button class="btn btn-primary" id="btnBoosterValider" style="flex:1;justify-content:center;">
-          <span class="material-symbols-outlined">check_circle</span>
-          Valider l'ajout
-        </button>
-        <button class="btn btn-secondary" id="btnBoosterCancel">Annuler</button>
       </div>
     </div>
   </div>

@@ -70,8 +70,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initFilters();
     initExportImport();
     initModal();
-    initGlobalSearch();   // M3 — Recherche globale
-    initBooster();        // M3 — FAB Booster
 
     // Rendu initial de la vue album
     renderCurrentView();
@@ -336,7 +334,7 @@ function renderCurrentView() {
     case 'manquantes': renderManquantesView();  break;
     case 'doublons':   renderDoublonsView();    break;
     case 'stats':      renderStatsView();       break;
-    case 'echanges':   /* résultats persistés, pas de re-render automatique */ break;
+    case 'echanges':   /* rien à rendre d'emblée */ break;
     default: break;
   }
 }
@@ -393,9 +391,6 @@ function renderAlbumView() {
   const pageNum = albumPages[currentAlbumPageIndex];
   const pageStickers = stickers.filter(s => s['Page'] === pageNum);
 
-  // Filtrage recherche si actif
-  const filtered = applySearchFilter(pageStickers);
-
   // Mise à jour de l'indicateur de page
   document.getElementById('albumPageCurrent').textContent = pageNum;
   document.getElementById('albumPageSelect').value = currentAlbumPageIndex;
@@ -407,23 +402,14 @@ function renderAlbumView() {
   // En-tête de section
   renderAlbumSectionHeader(pageStickers);
 
-  // M2 — Grille via DocumentFragment (évite les reflows multiples)
+  // Grille de vignettes
   const grid = document.getElementById('stickerGrid');
-  const frag = document.createDocumentFragment();
-
-  filtered.forEach(sticker => {
-    frag.appendChild(buildStickerCard(sticker));
-  });
-
-  if (filtered.length === 0 && searchQuery) {
-    const empty = document.createElement('div');
-    empty.className = 'no-search-results';
-    empty.textContent = `Aucune vignette ne correspond à "${searchQuery}"`;
-    frag.appendChild(empty);
-  }
-
   grid.innerHTML = '';
-  grid.appendChild(frag);
+
+  pageStickers.forEach(sticker => {
+    const card = buildStickerCard(sticker);
+    grid.appendChild(card);
+  });
 }
 
 /**
@@ -467,7 +453,6 @@ function buildStickerCard(sticker) {
   article.setAttribute('role', 'listitem');
   article.setAttribute('aria-label', `${sticker.ID} — ${sticker.Nom} (${statusLabel(status)})`);
   article.dataset.id = sticker.ID;
-  article.dataset.type = sticker.Type; // M1 — pour le sélecteur CSS holographique
 
   // Badge doublon
   const dupBadge = status === 'duplicate'
@@ -544,8 +529,6 @@ function renderPaysView() {
 
   if (!paysStickers.length) return;
 
-  const filtered = applySearchFilter(paysStickers);
-
   // Statistiques du pays
   const total = paysStickers.length;
   const owned = paysStickers.filter(s => getStatus(s.ID) === 'owned' || getStatus(s.ID) === 'duplicate').length;
@@ -568,21 +551,10 @@ function renderPaysView() {
     </div>
   `;
 
-  // M2 — Grille via DocumentFragment
+  // Grille des vignettes du pays
   const grid = document.getElementById('paysGrid');
-  const frag = document.createDocumentFragment();
-
-  filtered.forEach(s => frag.appendChild(buildStickerCard(s)));
-
-  if (filtered.length === 0 && searchQuery) {
-    const empty = document.createElement('div');
-    empty.className = 'no-search-results';
-    empty.textContent = `Aucune vignette ne correspond à "${searchQuery}"`;
-    frag.appendChild(empty);
-  }
-
   grid.innerHTML = '';
-  grid.appendChild(frag);
+  paysStickers.forEach(s => grid.appendChild(buildStickerCard(s)));
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -671,19 +643,15 @@ function renderDoublonsView() {
  * @param {boolean} showDupCount - Afficher le compteur de doublons
  */
 function renderStickerList(container, stickersList, showDupCount = false) {
-  // M2 — DocumentFragment pour éviter les reflows
-  const frag = document.createDocumentFragment();
+  container.innerHTML = '';
 
   if (!stickersList.length) {
-    const empty = document.createElement('div');
-    empty.style.cssText = 'padding:var(--sp-lg);text-align:center;color:var(--outline);';
-    empty.innerHTML = `
-      <span class="material-symbols-outlined" style="font-size:48px;opacity:0.3;display:block;margin-bottom:12px;">check_circle</span>
-      <p style="font-weight:700;font-size:14px;">Aucune vignette dans cette catégorie.</p>
+    container.innerHTML = `
+      <div style="padding:var(--sp-lg);text-align:center;color:var(--outline);">
+        <span class="material-symbols-outlined" style="font-size:48px;opacity:0.3;display:block;margin-bottom:12px;">check_circle</span>
+        <p style="font-weight:700;font-size:14px;">Aucune vignette dans cette catégorie.</p>
+      </div>
     `;
-    frag.appendChild(empty);
-    container.innerHTML = '';
-    container.appendChild(frag);
     return;
   }
 
@@ -706,7 +674,7 @@ function renderStickerList(container, stickersList, showDupCount = false) {
       <span>${escHtml(sectionName)}</span>
       <span style="margin-left:auto;font-size:11px;color:var(--outline);">${items.length} vignette${items.length > 1 ? 's' : ''}</span>
     `;
-    frag.appendChild(header);
+    container.appendChild(header);
 
     // Items de ce groupe
     items.forEach(s => {
@@ -729,12 +697,9 @@ function renderStickerList(container, stickersList, showDupCount = false) {
       `;
 
       item.addEventListener('click', () => openModal(s.ID));
-      frag.appendChild(item);
+      container.appendChild(item);
     });
   });
-
-  container.innerHTML = '';
-  container.appendChild(frag);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -815,345 +780,8 @@ function initExportImport() {
     document.getElementById('dblExportZone').classList.add('hidden');
   });
 
-  // --- Module Échanges Matchmaker ---
-  initMatchmaker();
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   M3 — BARRE DE RECHERCHE GLOBALE
-   ═══════════════════════════════════════════════════════════════ */
-
-/** Terme de recherche courant (vide = pas de filtre) */
-let searchQuery = '';
-
-/**
- * Initialise la barre de recherche dans le header.
- */
-function initGlobalSearch() {
-  const input = document.getElementById('globalSearchInput');
-  const clearBtn = document.getElementById('globalSearchClear');
-
-  input.addEventListener('input', () => {
-    searchQuery = input.value.trim().toLowerCase();
-    clearBtn.classList.toggle('visible', searchQuery.length > 0);
-    renderCurrentView();
-  });
-
-  clearBtn.addEventListener('click', () => {
-    input.value = '';
-    searchQuery = '';
-    clearBtn.classList.remove('visible');
-    input.focus();
-    renderCurrentView();
-  });
-}
-
-/**
- * Filtre une liste de stickers selon la recherche courante.
- * Correspond à l'ID (ex: "FRA10") ou au nom du joueur (ex: "Mbappé").
- * @param {Array} list - Liste brute de stickers
- * @returns {Array} - Liste filtrée
- */
-function applySearchFilter(list) {
-  if (!searchQuery) return list;
-  return list.filter(s =>
-    s.ID.toLowerCase().includes(searchQuery) ||
-    (s.Nom && s.Nom.toLowerCase().includes(searchQuery))
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   M3 — MODE "OUVERTURE DE BOOSTER" (FAB + Modale)
-   ═══════════════════════════════════════════════════════════════ */
-
-/**
- * Initialise le FAB et la modale de booster.
- */
-function initBooster() {
-  const fab    = document.getElementById('fabBooster');
-  const modal  = document.getElementById('boosterModal');
-  const input  = document.getElementById('boosterInput');
-  const preview = document.getElementById('boosterPreview');
-
-  // Ouverture
-  fab.addEventListener('click', () => {
-    modal.classList.remove('hidden');
-    input.value = '';
-    preview.innerHTML = '';
-    input.focus();
-  });
-
-  // Fermeture
-  document.getElementById('btnBoosterClose').addEventListener('click', closeBoosterModal);
-  document.getElementById('btnBoosterCancel').addEventListener('click', closeBoosterModal);
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeBoosterModal();
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeBoosterModal();
-  });
-
-  // Prévisualisation en temps réel
-  input.addEventListener('input', () => {
-    const knownIDs = new Set(stickers.map(s => s.ID));
-    const tokens   = input.value.trim().toUpperCase().split(/\s+/).filter(Boolean);
-
-    if (!tokens.length) { preview.innerHTML = ''; return; }
-
-    preview.innerHTML = tokens.map(t => {
-      const exists = knownIDs.has(t);
-      return `<span class="tag-${exists ? 'ok' : 'err'}">${escHtml(t)}</span>`;
-    }).join('');
-  });
-
-  // Validation
-  document.getElementById('btnBoosterValider').addEventListener('click', () => {
-    const knownIDs = new Set(stickers.map(s => s.ID));
-    const tokens   = input.value.trim().toUpperCase().split(/\s+/).filter(Boolean);
-    const valid    = tokens.filter(t => knownIDs.has(t));
-
-    if (!valid.length) {
-      showToast('⚠️ Aucun ID reconnu dans la saisie.');
-      return;
-    }
-
-    let added = 0;
-    valid.forEach(id => {
-      const current = getStatus(id);
-      if (current === 'missing') {
-        setStatus(id, 'owned');
-        added++;
-      } else if (current === 'owned') {
-        setStatus(id, 'duplicate', 2);
-        added++;
-      } else if (current === 'duplicate') {
-        const count = (collectionState[id]?.count || 2) + 1;
-        setStatus(id, 'duplicate', count);
-        added++;
-      }
-    });
-
-    closeBoosterModal();
-    renderCurrentView();
-    showToast(`✅ ${added} vignette${added > 1 ? 's' : ''} ajoutée${added > 1 ? 's' : ''} !`);
-  });
-}
-
-function closeBoosterModal() {
-  document.getElementById('boosterModal').classList.add('hidden');
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   M4 — MATCHMAKER (module échanges refondu)
-   ═══════════════════════════════════════════════════════════════ */
-
-/**
- * Initialise le module Matchmaker (onglets + analyse + export).
- */
-function initMatchmaker() {
-  // Onglets
-  document.querySelectorAll('.matchmaker-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.matchmaker-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.matchmaker-tab-pane').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById(`matchmaker-pane-${tab.dataset.tab}`).classList.add('active');
-    });
-  });
-
-  // Analyser depuis texte brut
-  document.getElementById('btnAnalyseTexte').addEventListener('click', () => {
-    const raw = document.getElementById('colleagueInputTexte').value.trim();
-    if (!raw) { showToast('⚠️ La liste est vide.'); return; }
-    const friendStickers = parseTextList(raw);
-    if (!friendStickers.size) {
-      showToast('⚠️ Format non reconnu. Exemple : MEX 1,2,3');
-      return;
-    }
-    renderMatchmakerResults(friendStickers);
-  });
-
-  // Analyser depuis JSON
-  document.getElementById('btnAnalyseJSON').addEventListener('click', () => {
-    const raw = document.getElementById('colleagueInputJSON').value.trim();
-    if (!raw) { showToast('⚠️ Aucun JSON fourni.'); return; }
-    const friendStickers = parseFriendJSON(raw);
-    if (!friendStickers) return; // erreur déjà toastée
-    renderMatchmakerResults(friendStickers);
-  });
-}
-
-/**
- * Parse le JSON de collection d'un ami et retourne deux Sets :
- * ses doublons (disponibles à l'échange) et ses manquantes.
- * @param {string} raw - JSON brut
- * @returns {{ doublons: Set<string>, manquantes: Set<string> } | null}
- */
-function parseFriendJSON(raw) {
-  try {
-    const parsed = JSON.parse(raw);
-    if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error();
-
-    const knownIDs = new Set(stickers.map(s => s.ID));
-    const doublons  = new Set();
-    const manquantes = new Set();
-
-    Object.entries(parsed).forEach(([id, entry]) => {
-      if (!knownIDs.has(id)) return;
-      if (entry.status === 'duplicate') doublons.add(id);
-      if (entry.status === 'missing')   manquantes.add(id);
-    });
-
-    // Les owned de l'ami : il ne les cherche plus et ne les a pas en surplus
-    // Toutes les non-listées ou manquantes → il les cherche
-    // Complète ses manquantes en ajoutant ce qui n'est ni owned ni duplicate
-    stickers.forEach(s => {
-      const entry = parsed[s.ID];
-      if (!entry || entry.status === 'missing') manquantes.add(s.ID);
-    });
-
-    return { doublons, manquantes };
-  } catch {
-    showToast('❌ JSON invalide ou format non reconnu.');
-    return null;
-  }
-}
-
-/**
- * Génère et affiche les résultats du Matchmaker.
- * Accepte soit un Set<ID> (mode texte brut = doublons de l'ami)
- * soit { doublons, manquantes } (mode JSON).
- *
- * @param {Set<string> | { doublons: Set<string>, manquantes: Set<string> }} friendData
- */
-function renderMatchmakerResults(friendData) {
-  const mesManquantes = new Set(
-    stickers.filter(s => getStatus(s.ID) === 'missing').map(s => s.ID)
-  );
-  const mesDoublons = new Set(
-    stickers.filter(s => getStatus(s.ID) === 'duplicate').map(s => s.ID)
-  );
-
-  let friendDoublons, friendManquantes;
-
-  if (friendData instanceof Set) {
-    // Mode texte brut : la liste fournie = doublons de l'ami
-    friendDoublons  = friendData;
-    // Ses manquantes = tout ce qu'il n'a pas listé
-    const allIDs = new Set(stickers.map(s => s.ID));
-    friendManquantes = new Set([...allIDs].filter(id => !friendDoublons.has(id)));
-  } else {
-    friendDoublons   = friendData.doublons;
-    friendManquantes = friendData.manquantes;
-  }
-
-  // Ce que JE DONNE à mon ami : mes doublons que lui cherche (qu'il n'a pas)
-  const jeDonne = [...mesDoublons].filter(id => friendManquantes.has(id));
-
-  // Ce que MON AMI ME DONNE : ses doublons que je cherche
-  const jeRecois = [...friendDoublons].filter(id => mesManquantes.has(id));
-
-  const resultsDiv = document.getElementById('matchmakerResults');
-
-  // Bannière résumé
-  const balanced = Math.min(jeDonne.length, jeRecois.length);
-  let html = `
-    <div class="match-summary-banner">
-      <span class="material-symbols-outlined">swap_horiz</span>
-      <span>Échange équilibré : </span>
-      <span class="score">${balanced}</span>
-      <span class="arrow material-symbols-outlined">arrow_forward</span>
-      <span>${jeDonne.length} à donner · ${jeRecois.length} à recevoir</span>
-    </div>
-    <div class="matchmaker-results">
-  `;
-
-  // Bloc "Ce que je donne"
-  html += `
-    <div class="match-block give">
-      <div class="match-block-header">
-        🔄 Je donne à mon ami (${jeDonne.length})
-      </div>
-      <div class="match-block-body">
-        ${jeDonne.length === 0
-          ? `<p class="match-empty">Aucun doublon utilisable.</p>`
-          : `<div class="match-tags">${jeDonne.map(id => {
-              const s = stickers.find(x => x.ID === id);
-              return `<span class="match-tag" title="${escHtml(s?.Nom || '')}" data-id="${escHtml(id)}">${escHtml(id)}</span>`;
-            }).join('')}</div>`
-        }
-      </div>
-    </div>
-  `;
-
-  // Bloc "Ce que je reçois"
-  html += `
-    <div class="match-block receive">
-      <div class="match-block-header">
-        ✅ Je reçois de mon ami (${jeRecois.length})
-      </div>
-      <div class="match-block-body">
-        ${jeRecois.length === 0
-          ? `<p class="match-empty">Ton ami n'a rien qui t'intéresse.</p>`
-          : `<div class="match-tags">${jeRecois.map(id => {
-              const s = stickers.find(x => x.ID === id);
-              return `<span class="match-tag" title="${escHtml(s?.Nom || '')}" data-id="${escHtml(id)}">${escHtml(id)}</span>`;
-            }).join('')}</div>`
-        }
-      </div>
-    </div>
-  `;
-
-  html += `</div>`;
-
-  // Zone d'export texte
-  const exportText = generateMatchExportText(jeDonne, jeRecois);
-  html += `
-    <div class="matchmaker-export-zone" style="margin-top:var(--sp-sm);">
-      <div class="matchmaker-export-header">
-        <span class="material-symbols-outlined">content_paste</span>
-        <span>Récapitulatif à envoyer</span>
-        <button class="btn btn-icon" id="btnCopyMatchExport" title="Copier">
-          <span class="material-symbols-outlined">content_copy</span>
-        </button>
-      </div>
-      <textarea class="export-textarea" id="matchExportTextarea" readonly style="min-height:120px;">${escHtml(exportText)}</textarea>
-    </div>
-  `;
-
-  resultsDiv.innerHTML = html;
-
-  // Clic sur les tags → ouvre la modale de la vignette
-  resultsDiv.querySelectorAll('.match-tag[data-id]').forEach(tag => {
-    tag.addEventListener('click', () => openModal(tag.dataset.id));
-  });
-
-  // Bouton copie export
-  document.getElementById('btnCopyMatchExport')?.addEventListener('click', () => {
-    copyTextarea('matchExportTextarea');
-  });
-}
-
-/**
- * Génère le texte d'export formaté pour l'échange (envoi par messagerie).
- * @param {string[]} jeDonne - IDs que je donne
- * @param {string[]} jeRecois - IDs que je reçois
- * @returns {string}
- */
-function generateMatchExportText(jeDonne, jeRecois) {
-  const balanced = Math.min(jeDonne.length, jeRecois.length);
-  const lines = [
-    '=== PANINI WC 2026 — RÉCAPITULATIF D\'ÉCHANGE ===',
-    '',
-    `Échange équilibré possible : ${balanced} vignette(s)`,
-    '',
-    `▶ CE QUE JE TE DONNE (${jeDonne.length}) :`,
-    generateExportText(stickers.filter(s => jeDonne.includes(s.ID))) || '(aucun)',
-    '',
-    `◀ CE QUE TU ME DONNES (${jeRecois.length}) :`,
-    generateExportText(stickers.filter(s => jeRecois.includes(s.ID))) || '(aucun)',
-  ];
-  return lines.join('\n');
+  // --- Module Échanges ---
+  document.getElementById('btnAnalyse').addEventListener('click', analyseEchanges);
 }
 
 /**
@@ -1259,8 +887,114 @@ function renderStatsBars() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   14. PARSING DE LISTES TEXTE
+   14. MODULE ÉCHANGES
    ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Analyse la liste textuelle d'un collègue et affiche les échanges possibles.
+ *
+ * Format attendu :
+ *   CODE N°1,N°2,N°3
+ *   CODE N°4,N°5
+ * Interprète chaque ligne comme les doublons du collègue (ou ses manquantes).
+ */
+function analyseEchanges() {
+  const raw = document.getElementById('colleagueInput').value.trim();
+  const resultsDiv = document.getElementById('echangeResults');
+
+  if (!raw) {
+    resultsDiv.innerHTML = `
+      <div class="echange-empty">
+        <span class="material-symbols-outlined">warning</span>
+        <p>La liste est vide. Colle la liste de ton collègue.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Parse la liste du collègue
+  const colleagueStickers = parseTextList(raw);
+
+  if (colleagueStickers.size === 0) {
+    resultsDiv.innerHTML = `
+      <div class="echange-empty">
+        <span class="material-symbols-outlined">error</span>
+        <p>Format non reconnu. Exemple attendu :<br><code>MEX 1,2,3</code></p>
+      </div>
+    `;
+    return;
+  }
+
+  // Mes manquantes : vignettes que je n'ai pas
+  const mesManquantes = new Set(
+    stickers.filter(s => getStatus(s.ID) === 'missing').map(s => s.ID)
+  );
+
+  // Mes doublons : vignettes que j'ai en surplus
+  const mesDoublons = new Set(
+    stickers.filter(s => getStatus(s.ID) === 'duplicate').map(s => s.ID)
+  );
+
+  // Ce que le collègue a (et que je cherche) : intersection(colleagueStickers, mesManquantes)
+  const ilsOntPourMoi = [...colleagueStickers].filter(id => mesManquantes.has(id));
+
+  // Ce que j'ai en doublon (et dont le collègue a besoin) : intersection(mesDoublons, manquantes du collègue)
+  // Note : on interprète la liste collée comme ses doublons OU ses manquantes.
+  // On considère ici que TOUTES les vignettes qu'il a listées = ses doublons disponibles.
+  // Ses manquantes sont les stickers non listés. Mes doublons dont il a besoin = mesDoublons - colleagueStickers.
+  const jeDonnePourLui = [...mesDoublons].filter(id => !colleagueStickers.has(id));
+
+  // Construction du rendu
+  let html = '';
+
+  // Bloc 1 : Ce que le collègue peut me donner
+  html += `<div class="echange-block ils-ont">
+    <div class="echange-block-title">
+      ✅ Il/Elle peut me donner (${ilsOntPourMoi.length})
+    </div>`;
+
+  if (ilsOntPourMoi.length === 0) {
+    html += `<p class="echange-empty" style="padding:var(--sp-sm);color:var(--outline);font-size:13px;">
+      Aucune vignette en commun.
+    </p>`;
+  } else {
+    html += `<div class="echange-sticker-tags">`;
+    ilsOntPourMoi.forEach(id => {
+      const s = stickers.find(x => x.ID === id);
+      html += `<span class="echange-tag" title="${escHtml(s?.Nom || '')}">${escHtml(id)}</span>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  // Bloc 2 : Ce que je peux lui donner
+  html += `<div class="echange-block je-donne">
+    <div class="echange-block-title">
+      🔄 Je peux lui/lui donner (${jeDonnePourLui.length})
+    </div>`;
+
+  if (jeDonnePourLui.length === 0) {
+    html += `<p class="echange-empty" style="padding:var(--sp-sm);color:rgba(255,255,255,0.6);font-size:13px;">
+      Aucun doublon à lui proposer.
+    </p>`;
+  } else {
+    html += `<div class="echange-sticker-tags">`;
+    jeDonnePourLui.forEach(id => {
+      const s = stickers.find(x => x.ID === id);
+      html += `<span class="echange-tag" title="${escHtml(s?.Nom || '')}">${escHtml(id)}</span>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  resultsDiv.innerHTML = html;
+}
+
+/**
+ * Parse une liste texte au format "CODE N°1,N°2,N°3" et retourne un Set d'IDs.
+ * @param {string} text - Texte brut à analyser
+ * @returns {Set<string>} - Ensemble des IDs reconnus
+ */
 function parseTextList(text) {
   const ids = new Set();
   const knownIDs = new Set(stickers.map(s => s.ID));
@@ -1314,9 +1048,7 @@ function initModal() {
 
       if (status === 'duplicate') {
         document.getElementById('modalDupControls').classList.remove('hidden');
-        const count = getDupCount(modalStickerID);
-        document.getElementById('dupCountDisplay').textContent = count;
-        updateModalDupMinusState(count);
+        document.getElementById('dupCountDisplay').textContent = getDupCount(modalStickerID);
       } else {
         document.getElementById('modalDupControls').classList.add('hidden');
       }
@@ -1329,7 +1061,6 @@ function initModal() {
     const newCount = (collectionState[modalStickerID]?.count || 2) + 1;
     setStatus(modalStickerID, 'duplicate', newCount);
     document.getElementById('dupCountDisplay').textContent = newCount;
-    updateModalDupMinusState(newCount);
     refreshStickerInView(modalStickerID);
   });
 
@@ -1340,18 +1071,8 @@ function initModal() {
     const newCount = current - 1;
     setStatus(modalStickerID, 'duplicate', newCount);
     document.getElementById('dupCountDisplay').textContent = newCount;
-    updateModalDupMinusState(newCount);
     refreshStickerInView(modalStickerID);
   });
-}
-
-/**
- * Active/désactive le bouton "Moins" selon la limite de 2 doublons minimum.
- * @param {number} count - Valeur courante du compteur
- */
-function updateModalDupMinusState(count) {
-  const btn = document.getElementById('btnDupMinus');
-  btn.disabled = count <= 2;
 }
 
 /**
@@ -1396,9 +1117,7 @@ function openModal(id) {
   const dupControls = document.getElementById('modalDupControls');
   if (status === 'duplicate') {
     dupControls.classList.remove('hidden');
-    const dupCount = getDupCount(id);
-    document.getElementById('dupCountDisplay').textContent = dupCount;
-    updateModalDupMinusState(dupCount);
+    document.getElementById('dupCountDisplay').textContent = getDupCount(id);
   } else {
     dupControls.classList.add('hidden');
   }
@@ -1467,10 +1186,6 @@ function updateGlobalProgress() {
   document.getElementById('progressTotal').textContent = total;
   document.getElementById('progressPct').textContent = `${pct}%`;
   document.getElementById('progressFill').style.width = `${pct}%`;
-
-  // M1 — Badge compact mobile
-  const badge = document.getElementById('progressPctMobile');
-  if (badge) badge.textContent = `${pct}%`;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1502,52 +1217,21 @@ function statusLabel(status) {
   return labels[status] || status;
 }
 
-/* ─── Toast (M1 : anti-spam agrégé) ─── */
+/* ─── Toast ─── */
 
 let toastTimer = null;
-let toastSpamKey = null;      // clé de catégorie du toast courant
-let toastSpamCount = 0;       // nb d'actions groupées
 
 /**
  * Affiche un message toast temporaire.
- * Si spamKey est fourni et correspond au toast actif, on agrège
- * en incrémentant un compteur plutôt qu'empiler de nouveaux toasts.
- *
- * @param {string} message   - Message principal
+ * @param {string} message - Message à afficher
  * @param {number} [duration=2500] - Durée en ms
- * @param {string|null} [spamKey=null] - Clé pour détecter les spams (ex: 'owned')
- * @param {string|null} [spamTemplate=null] - Template avec %n% pour le compteur
  */
-function showToast(message, duration = 2500, spamKey = null, spamTemplate = null) {
+function showToast(message, duration = 2500) {
   const toast = document.getElementById('toast');
-
-  if (spamKey && spamKey === toastSpamKey && toast.classList.contains('show')) {
-    // Toast existant de la même catégorie → on agrège
-    toastSpamCount++;
-    toast.textContent = spamTemplate
-      ? spamTemplate.replace('%n%', toastSpamCount)
-      : message;
-    // On reset le timer
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      toast.classList.remove('show');
-      toastSpamKey = null;
-      toastSpamCount = 0;
-    }, duration);
-    return;
-  }
-
-  // Nouveau toast
-  toastSpamKey   = spamKey;
-  toastSpamCount = 1;
   toast.textContent = message;
   toast.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    toast.classList.remove('show');
-    toastSpamKey = null;
-    toastSpamCount = 0;
-  }, duration);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
 }
 
 /* ─── Spinner de chargement ─── */
